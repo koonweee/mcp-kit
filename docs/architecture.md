@@ -30,6 +30,11 @@ The supported public paths are:
 
 No internal source path is a compatibility surface.
 
+Each supported path has conditional ESM and CommonJS exports with matching declarations. The two
+formats implement the same API and policy behavior. The small CommonJS runtime bridge loads
+ESM-only `jose` v6 through native `import()` on first Auth0 verification or test-JWT operation;
+the resulting module and JWKS resolver are reused, while tokens remain uncached.
+
 ## Request lifecycle
 
 The Node adapter applies host and origin checks before routing. `/healthz` is public and reveals only `{ "status": "ok" }`. Auth0 discovery is handled before `/mcp`; the bearer gate validates an access token before the official MCP handler receives it.
@@ -48,7 +53,10 @@ Node is the only runtime implementation. The Cloudflare directory records a futu
 
 The package follows semantic versioning once released. A breaking change to a public subpath, definition or context type, Node minimum, supported MCP protocol era, authentication claim contract, or adapter behavior requires a major release. Additive helpers and support for another protocol revision may be minor when existing consumers continue to work unchanged. Security and correctness fixes are patches when they preserve the contract.
 
-Consumers must pin a released package version rather than import a sibling checkout or unpinned Git branch. Release gates include the full test suite, packed-file inspection, imports from the tarball, an external consumer build, and post-publication imports from the public npm registry.
+Consumers must pin a released package version rather than import a sibling checkout or unpinned
+Git branch. Release gates include the full test suite, packed-file inspection, ESM and CommonJS
+type/runtime checks from the tarball, authenticated external-consumer smokes, and post-publication
+`import` and `require` checks from the public npm registry.
 
 See [Releasing and adopting](releasing.md) for the tagged artifact contract and the first real consumer checklist.
 

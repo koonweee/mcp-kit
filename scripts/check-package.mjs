@@ -12,17 +12,32 @@ const unexpected = files.filter(
 );
 if (unexpected.length > 0) throw new Error(`Unexpected packed files:\n${unexpected.join('\n')}`);
 for (const required of [
-  'package/dist/index.js',
-  'package/dist/node/index.js',
-  'package/dist/auth0/index.js',
-  'package/dist/test/index.js',
-  'package/dist/index.d.ts',
+  'package/dist/esm/index.js',
+  'package/dist/esm/node/index.js',
+  'package/dist/esm/auth0/index.js',
+  'package/dist/esm/test/index.js',
+  'package/dist/esm/index.d.ts',
+  'package/dist/cjs/index.js',
+  'package/dist/cjs/node/index.js',
+  'package/dist/cjs/auth0/index.js',
+  'package/dist/cjs/test/index.js',
+  'package/dist/cjs/index.d.ts',
+  'package/dist/cjs/package.json',
+  'package/dist/esm/shared/jose-loader.cjs',
+  'package/dist/cjs/shared/jose-loader.cjs',
   'package/LICENSE',
   'package/README.md',
 ]) {
   if (!files.includes(required)) throw new Error(`Packed artifact is missing ${required}`);
 }
-for (const path of ['dist/index.js', 'dist/node/index.js', 'dist/auth0/index.js']) {
+for (const path of [
+  'dist/esm/index.js',
+  'dist/esm/node/index.js',
+  'dist/esm/auth0/index.js',
+  'dist/cjs/index.js',
+  'dist/cjs/node/index.js',
+  'dist/cjs/auth0/index.js',
+]) {
   const source = await readFile(resolve(root, path), 'utf8');
   if (/PRIVATE (?:RSA )?KEY/u.test(source))
     throw new Error(`Private key material found in ${path}`);

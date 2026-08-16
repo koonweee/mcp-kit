@@ -56,6 +56,22 @@ console.log('all four public subpaths imported from the packed artifact');
 `,
   );
   await writeFile(
+    join(workspace, 'index.cjs'),
+    `
+const surfaces = [
+  require('@koonweee/mcp-kit'),
+  require('@koonweee/mcp-kit/node'),
+  require('@koonweee/mcp-kit/auth0'),
+  require('@koonweee/mcp-kit/test'),
+];
+for (const [index, surface] of surfaces.entries()) {
+  if (Object.keys(surface).length === 0) throw new Error('empty CommonJS public subpath ' + index);
+}
+if (typeof surfaces[3].createTestJwtAuthority !== 'function') throw new Error('CommonJS test helper missing');
+console.log('all four CommonJS public subpaths required from the packed artifact');
+`,
+  );
+  await writeFile(
     join(workspace, 'index.ts'),
     `
 import { defineServer, defineTool, type McpPrincipal } from '@koonweee/mcp-kit';
@@ -130,6 +146,47 @@ void [tool, typedTool, multiRoundTool, verifier, handler, connection];
 `,
   );
   await writeFile(
+    join(workspace, 'index.cts'),
+    `
+import { defineServer, defineTool, type McpPrincipal } from '@koonweee/mcp-kit';
+import { createNodeMcpHandler, type NodeMcpHandler } from '@koonweee/mcp-kit/node';
+import { createAuth0Verifier, type Auth0VerifierOptions } from '@koonweee/mcp-kit/auth0';
+import { createTestJwtAuthority, createTestPrincipal } from '@koonweee/mcp-kit/test';
+import { inputRequired, type ServerContext } from '@modelcontextprotocol/server';
+import { z } from 'zod/v4';
+
+const principal: McpPrincipal = createTestPrincipal();
+const verifier = createAuth0Verifier({} as Auth0VerifierOptions);
+const outputSchema = z.object({ value: z.string() });
+const tool = defineTool<Record<string, never>>()({
+  name: 'commonjs-types',
+  description: 'CommonJS declaration inference fixture',
+  inputSchema: z.object({ requireInput: z.boolean() }),
+  outputSchema,
+  _meta: { 'example.dev/module': 'commonjs' },
+  requiredScopes: [],
+  risk: { kind: 'read' },
+  handler: ({ requireInput }, _context, sdkContext) => {
+    const officialContext: ServerContext = sdkContext;
+    void officialContext;
+    if (requireInput) return inputRequired({ requestState: 'commonjs-round-1' });
+    return {
+      content: [{ type: 'text', text: 'typed' }],
+      structuredContent: { value: 'typed' },
+    };
+  },
+});
+const definition = defineServer<Record<string, never>>()({
+  name: 'commonjs-types',
+  version: '1.0.0',
+  tools: [tool],
+});
+const handler: NodeMcpHandler = createNodeMcpHandler(definition, { dependencies: () => ({}) });
+const authority = createTestJwtAuthority();
+void [principal, verifier, handler, authority];
+`,
+  );
+  await writeFile(
     join(workspace, 'tsconfig.json'),
     JSON.stringify(
       {
@@ -141,7 +198,7 @@ void [tool, typedTool, multiRoundTool, verifier, handler, connection];
           strict: true,
           noEmit: true,
         },
-        include: ['index.ts'],
+        include: ['index.ts', 'index.cts'],
       },
       null,
       2,
@@ -150,6 +207,7 @@ void [tool, typedTool, multiRoundTool, verifier, handler, connection];
   await installOffline(workspace);
   await run('pnpm', ['exec', 'tsc', '-p', 'tsconfig.json'], { cwd: workspace });
   await run(process.execPath, ['index.mjs'], { cwd: workspace });
+  await run(process.execPath, ['index.cjs'], { cwd: workspace });
 } finally {
   await rm(workspace, { recursive: true, force: true });
 }

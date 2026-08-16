@@ -13,6 +13,10 @@ try {
     copyFile(resolve(root, 'examples/basic-node/package.json'), join(workspace, 'package.json')),
     copyFile(resolve(root, 'examples/basic-node/tsconfig.json'), join(workspace, 'tsconfig.json')),
     copyFile(
+      resolve(root, 'examples/basic-node/commonjs-smoke.cjs'),
+      join(workspace, 'commonjs-smoke.cjs'),
+    ),
+    copyFile(
       resolve(root, 'examples/basic-node/pnpm-workspace.yaml'),
       join(workspace, 'pnpm-workspace.yaml'),
     ),

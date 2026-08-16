@@ -59,7 +59,14 @@ pnpm release:check -- vX.Y.Z
 pnpm verify
 ```
 
-`test:exports` installs the packed tarball into a temporary project, typechecks, and imports every public subpath. `test:consumer` compiles and runs the neutral example against the tarball rather than workspace source. `test:container` builds the example Docker image from that tarball and removes the temporary image. `pack:check` rejects unintended package files and production exposure of signing fixtures or private keys. `release:check` matches the tag, package version, and changelog entry. Run these gates after changing exports, declarations, examples, dependencies, or release metadata.
+`test:exports` installs the packed tarball into a temporary project, typechecks both ESM and
+CommonJS consumers, and exercises `import` and `require` for every public subpath. `test:consumer`
+compiles and runs the neutral ESM example plus an authenticated CommonJS client/server smoke against
+the tarball rather than workspace source. `test:container` builds the example Docker image from that
+tarball and requires all CommonJS paths inside Node 24. `pack:check` rejects unintended package
+files and production exposure of signing fixtures or private keys. `release:check` matches the tag,
+package version, and changelog entry. Run these gates after changing exports, declarations,
+examples, dependencies, or release metadata.
 
 The optional real-tenant procedure is intentionally kept in [Auth0](auth0.md); do not reproduce it in test files or CI.
 

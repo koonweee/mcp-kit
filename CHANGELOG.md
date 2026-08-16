@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1 - 2026-08-16
+
+- Dual ESM and CommonJS package exports, declarations, packed-consumer checks, and Node 24
+  container verification for all four public subpaths.
+- Native lazy loading for ESM-only `jose` v6 so CommonJS Auth0 and JWT test helpers keep the same
+  bounded JWKS cache and injectable-fetch behavior.
+
 ## 0.2.0 - 2026-08-16
 
 - Official SDK v2 `ServerContext` and `InputRequiredResult` pass-through for SDK-native multi-round tool input.

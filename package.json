@@ -1,6 +1,6 @@
 {
   "name": "@koonweee/mcp-kit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Personal TypeScript toolkit for defining repeatable, stateless MCP servers with Node and Auth0.",
   "type": "module",
   "license": "MIT",
@@ -28,25 +28,51 @@
   ],
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     },
     "./node": {
-      "types": "./dist/node/index.d.ts",
-      "import": "./dist/node/index.js"
+      "import": {
+        "types": "./dist/esm/node/index.d.ts",
+        "default": "./dist/esm/node/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/node/index.d.ts",
+        "default": "./dist/cjs/node/index.js"
+      }
     },
     "./auth0": {
-      "types": "./dist/auth0/index.d.ts",
-      "import": "./dist/auth0/index.js"
+      "import": {
+        "types": "./dist/esm/auth0/index.d.ts",
+        "default": "./dist/esm/auth0/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/auth0/index.d.ts",
+        "default": "./dist/cjs/auth0/index.js"
+      }
     },
     "./test": {
-      "types": "./dist/test/index.d.ts",
-      "import": "./dist/test/index.js"
+      "import": {
+        "types": "./dist/esm/test/index.d.ts",
+        "default": "./dist/esm/test/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/test/index.d.ts",
+        "default": "./dist/cjs/test/index.js"
+      }
     }
   },
   "scripts": {
     "clean": "node scripts/clean.mjs",
-    "build": "pnpm clean && tsc -p tsconfig.build.json",
+    "build": "pnpm clean && pnpm build:esm && pnpm build:cjs && node scripts/copy-runtime.mjs && node scripts/mark-cjs.mjs",
+    "build:esm": "tsc -p tsconfig.build.json",
+    "build:cjs": "tsc -p tsconfig.build.cjs.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:example": "tsc -p examples/basic-node/tsconfig.json --noEmit",
     "lint": "pnpm build && eslint . --max-warnings 0 && prettier --check .",

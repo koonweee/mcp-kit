@@ -4,7 +4,8 @@ import {
   type AuthInfo,
   type OAuthTokenVerifier,
 } from '@modelcontextprotocol/server';
-import { createRemoteJWKSet, customFetch, errors, jwtVerify, type FetchImplementation } from 'jose';
+import type { FetchImplementation } from 'jose';
+import { loadJose, type JoseModule } from '../shared/jose-loader.cjs';
 
 /** Bounded, injectable JWKS cache settings. Public keys are cached; tokens never are. */
 export interface Auth0JwksOptions {
@@ -75,8 +76,8 @@ function nonEmptyClaim(payload: Record<string, unknown>, name: string): string |
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
-function oauthFailure(error: unknown): OAuthError {
-  if (error instanceof errors.JOSEError && invalidTokenCodes.has(error.code)) {
+function oauthFailure(error: unknown, jose: JoseModule | undefined): OAuthError {
+  if (jose && error instanceof jose.errors.JOSEError && invalidTokenCodes.has(error.code)) {
     return new OAuthError(OAuthErrorCode.InvalidToken, 'Invalid access token');
   }
   if (error instanceof InvalidTokenClaimError) {
@@ -100,18 +101,26 @@ export function createAuth0Verifier(options: Auth0VerifierOptions): OAuthTokenVe
     throw new TypeError('jwksUri must use HTTPS');
   }
 
-  const fetchImplementation = options.jwks?.fetch;
-  const jwks = createRemoteJWKSet(jwksUri, {
-    timeoutDuration: options.jwks?.timeoutMs ?? 5_000,
-    cooldownDuration: options.jwks?.cooldownMs ?? 30_000,
-    cacheMaxAge: options.jwks?.cacheMaxAgeMs ?? 600_000,
-    ...(fetchImplementation ? { [customFetch]: fetchImplementation } : {}),
-  });
+  let jwks: Promise<ReturnType<JoseModule['createRemoteJWKSet']>> | undefined;
+  const getJwks = () => {
+    jwks ??= loadJose().then((jose) => {
+      const fetchImplementation = options.jwks?.fetch;
+      return jose.createRemoteJWKSet(jwksUri, {
+        timeoutDuration: options.jwks?.timeoutMs ?? 5_000,
+        cooldownDuration: options.jwks?.cooldownMs ?? 30_000,
+        cacheMaxAge: options.jwks?.cacheMaxAgeMs ?? 600_000,
+        ...(fetchImplementation ? { [jose.customFetch]: fetchImplementation } : {}),
+      });
+    });
+    return jwks;
+  };
 
   return Object.freeze<OAuthTokenVerifier>({
     async verifyAccessToken(token: string): Promise<AuthInfo> {
+      let jose: JoseModule | undefined;
       try {
-        const { payload } = await jwtVerify(token, jwks, {
+        jose = await loadJose();
+        const { payload } = await jose.jwtVerify(token, await getJwks(), {
           algorithms: ['RS256'],
           issuer: issuer.href,
           audience: audienceValue,
@@ -133,7 +142,7 @@ export function createAuth0Verifier(options: Auth0VerifierOptions): OAuthTokenVe
           extra: { subject },
         };
       } catch (error) {
-        throw oauthFailure(error);
+        throw oauthFailure(error, jose);
       }
     },
   });

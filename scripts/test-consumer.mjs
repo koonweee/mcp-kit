@@ -128,9 +128,87 @@ try {
 }
 `,
   );
+  await writeFile(
+    join(workspace, 'smoke.cjs'),
+    `
+const { Client, StreamableHTTPClientTransport } = require('@modelcontextprotocol/client');
+const { defineServer, defineTool } = require('@koonweee/mcp-kit');
+const { serveNode } = require('@koonweee/mcp-kit/node');
+const {
+  createAuth0BearerGate,
+  createAuth0ProtectedResourceHandler,
+  createAuth0Verifier,
+  getAuth0ProtectedResourceMetadataUrl,
+  principalFromAuthInfo,
+} = require('@koonweee/mcp-kit/auth0');
+const { createTestJwtAuthority } = require('@koonweee/mcp-kit/test');
+const { z } = require('zod/v4');
+
+void (async () => {
+  const authority = await createTestJwtAuthority();
+  const read = defineTool()({
+    name: 'commonjs-read',
+    description: 'Read through the CommonJS package surface',
+    inputSchema: z.object({}),
+    outputSchema: z.object({ value: z.string() }),
+    requiredScopes: ['example:read'],
+    risk: { kind: 'read' },
+    handler: () => ({
+      content: [{ type: 'text', text: 'commonjs-ready' }],
+      structuredContent: { value: 'commonjs-ready' },
+    }),
+  });
+  const definition = defineServer()({
+    name: 'commonjs-consumer',
+    version: '1.0.0',
+    tools: [read],
+  });
+  const verifier = createAuth0Verifier({
+    issuer: authority.issuer,
+    audience: authority.audience,
+    jwksUri: authority.jwksUri,
+    jwks: { fetch: authority.fetch, cooldownMs: 0 },
+  });
+  const running = await serveNode(definition, {
+    dependencies: () => ({}),
+    authenticate: createAuth0BearerGate({
+      verifier,
+      resourceMetadataUrl: getAuth0ProtectedResourceMetadataUrl(authority.audience),
+    }),
+    principalFromAuthInfo,
+    discovery: createAuth0ProtectedResourceHandler({
+      issuer: authority.issuer,
+      resourceServerUrl: authority.audience,
+      scopesSupported: ['example:read'],
+    }),
+  });
+  const token = await authority.sign({ scope: 'example:read' });
+  const client = new Client({ name: 'commonjs-consumer', version: '1.0.0' });
+  try {
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL('/mcp', running.url), {
+        requestInit: { headers: { authorization: 'Bearer ' + token } },
+      }),
+    );
+    const result = await client.callTool({ name: 'commonjs-read', arguments: {} });
+    if (result.isError || result.structuredContent?.value !== 'commonjs-ready') {
+      throw new Error('CommonJS authenticated tool call failed');
+    }
+    console.log('packed CommonJS consumer passed authenticated smoke checks');
+  } finally {
+    await client.close();
+    await running.close();
+  }
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+`,
+  );
   await installOffline(workspace);
   await run('pnpm', ['exec', 'tsc', '-p', 'tsconfig.json'], { cwd: workspace });
   await run(process.execPath, ['smoke.mjs'], { cwd: workspace });
+  await run(process.execPath, ['smoke.cjs'], { cwd: workspace });
 } finally {
   await rm(workspace, { recursive: true, force: true });
 }

@@ -16,7 +16,8 @@ The workflow grants only `contents: read` and `id-token: write`, uses the public
 2. On `main`, update `package.json` and add a dated `CHANGELOG.md` entry. Do not change the package name, reuse a published version, or create a substitute version to bypass a failure.
 3. Run `pnpm release:check -- vX.Y.Z` and `pnpm verify` from a clean install. Review the packed file list and diff, then commit and push.
 4. Wait for the branch CI workflow to pass. Create an annotated `vX.Y.Z` tag on that exact commit and push the tag.
-5. Watch the Release workflow. After it succeeds, run `pnpm test:registry -- vX.Y.Z` or independently install the exact version and import all four public subpaths.
+5. Watch the Release workflow. After it succeeds, run `pnpm test:registry -- vX.Y.Z` or
+   independently install the exact version and both import and require all four public subpaths.
 
 The tag-triggered workflow repeats `release:check` and the full `verify` gate, creates the inspected tarball, uploads it as the `mcp-kit-package` GitHub Actions artifact, publishes that exact tarball publicly to npm, and verifies registry metadata, integrity, installation, and imports. It does not change package versions, create tags, create GitHub Releases, or deploy consumers.
 
@@ -33,7 +34,8 @@ The tag-triggered workflow repeats `release:check` and the full `verify` gate, c
 Adopt a released version only in the service's own repository, after the packed neutral consumer and registry checks pass here:
 
 1. Pin an exact public npm version; never consume a local checkout or unpinned Git branch.
-2. Run the service's typecheck and tests, then build its production container from the pinned package.
+2. Run the service's typecheck and tests in its actual ESM or CommonJS module mode, then build its
+   production container from the pinned package. Do not add a dynamic-import compatibility wrapper.
 3. Run authenticated MCP smoke checks through the official client: discovery, initialization, tool listing, one allowed call, and one denied call that proves the backend was not invoked.
 4. Publish the service image and pin its immutable digest in the service repository and declarative Komodo stack.
 5. Validate the intended Auth0 issuer, audience/resource, scopes, protected-resource metadata, and bearer challenge through the real Traefik hostname before enabling the client connection.

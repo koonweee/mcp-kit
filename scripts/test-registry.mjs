@@ -74,7 +74,32 @@ if (typeof surfaces[3].createTestJwtAuthority !== 'function') throw new Error('t
 console.log('all four public subpaths imported from ${spec}');
 `,
   );
+  await writeFile(
+    join(workspace, 'index.cjs'),
+    `
+const surfaces = [
+  require('@koonweee/mcp-kit'),
+  require('@koonweee/mcp-kit/node'),
+  require('@koonweee/mcp-kit/auth0'),
+  require('@koonweee/mcp-kit/test'),
+];
+for (const [index, surface] of surfaces.entries()) {
+  if (Object.keys(surface).length === 0) throw new Error('empty CommonJS public subpath ' + index);
+}
+void (async () => {
+  const authority = await surfaces[3].createTestJwtAuthority();
+  const token = await authority.sign({ scope: 'registry:read' });
+  if (token.split('.').length !== 3) throw new Error('CommonJS registry JWT helper failed');
+  console.log('all four CommonJS public subpaths required from ${spec}');
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+`,
+  );
+  await run('npm', ['audit', 'signatures'], { cwd: workspace });
   await run(process.execPath, ['index.mjs'], { cwd: workspace });
+  await run(process.execPath, ['index.cjs'], { cwd: workspace });
 } finally {
   await rm(workspace, { recursive: true, force: true });
 }

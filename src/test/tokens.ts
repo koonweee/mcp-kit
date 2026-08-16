@@ -1,4 +1,5 @@
-import { SignJWT, exportJWK, generateKeyPair, type FetchImplementation, type JWK } from 'jose';
+import type { FetchImplementation, JWK } from 'jose';
+import { loadJose } from '../shared/jose-loader.cjs';
 
 /** Claims accepted by the ephemeral RS256 authority. */
 export interface TestTokenClaims {
@@ -32,6 +33,7 @@ interface SigningKey {
 }
 
 async function signingKey(kid: string): Promise<SigningKey> {
+  const { exportJWK, generateKeyPair } = await loadJose();
   const pair = await generateKeyPair('RS256', { extractable: true });
   return {
     kid,
@@ -60,6 +62,7 @@ export async function createTestJwtAuthority(
     jwksUri,
     fetch: () => Promise.resolve(Response.json({ keys: published.map((key) => key.publicJwk) })),
     async sign(claims = {}) {
+      const { SignJWT } = await loadJose();
       const now = Math.floor(Date.now() / 1_000);
       const tokenAudience: string | string[] =
         typeof claims.audience === 'string' || claims.audience === undefined

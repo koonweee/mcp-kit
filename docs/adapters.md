@@ -6,6 +6,10 @@ The portable definition layer is host-independent. An adapter is responsible for
 
 Node is the only supported runtime. `createNodeMcpHandler` composes the official SDK v2 `createMcpHandler` Web handler with `toNodeHandler`; it does not maintain a custom MCP transport.
 
+The Node adapter is available from `@koonweee/mcp-kit/node` in both ESM and CommonJS hosts. Use a
+normal static `import` or `require`; consumers do not need dynamic-import wrappers, private paths,
+or a module-format conversion layer.
+
 The default routes are `/mcp` and `/healthz`. The adapter:
 
 - creates a fresh server, request context, dependency object, principal view, and logger selection per MCP request;

@@ -3,8 +3,10 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml mcp-kit.tgz ./
 RUN corepack enable && pnpm install --no-frozen-lockfile
 COPY tsconfig.json ./
+COPY commonjs-smoke.cjs ./
 COPY src ./src
 RUN pnpm build
+RUN node commonjs-smoke.cjs
 
 FROM node:24-alpine
 WORKDIR /app

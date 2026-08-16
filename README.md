@@ -2,7 +2,8 @@
 
 `@koonweee/mcp-kit` is a small TypeScript toolkit for defining independently deployed, stateless MCP servers in a personal stack. It provides portable tool definitions, a Node Streamable HTTP adapter, Auth0 resource-server support, safe policy and logging defaults, and test helpers. Service tools, backend clients, credentials, and deployment stay in the consuming service repository.
 
-The first release supports Node.js 24 or newer. Cloudflare is a documented adapter seam, not a supported runtime.
+The package supports Node.js 24 or newer from both ESM and CommonJS applications. Cloudflare is a
+documented adapter seam, not a supported runtime.
 
 ## Install
 
@@ -37,6 +38,13 @@ const definition = defineServer<Record<string, never>>()({
 await serveNode(definition, { dependencies: () => ({}) });
 ```
 
+CommonJS consumers use the same public paths and APIs:
+
+```js
+const { defineServer, defineTool } = require('@koonweee/mcp-kit');
+const { serveNode } = require('@koonweee/mcp-kit/node');
+```
+
 ## Guides
 
 - [Architecture and boundaries](docs/architecture.md)
@@ -46,7 +54,9 @@ await serveNode(definition, { dependencies: () => ({}) });
 - [Runtime adapters](docs/adapters.md)
 - [Releasing and adopting](docs/releasing.md)
 
-The only public package paths are `@koonweee/mcp-kit`, `@koonweee/mcp-kit/node`, `@koonweee/mcp-kit/auth0`, and `@koonweee/mcp-kit/test`.
+The only public package paths are `@koonweee/mcp-kit`, `@koonweee/mcp-kit/node`,
+`@koonweee/mcp-kit/auth0`, and `@koonweee/mcp-kit/test`. Every path supports both `import` and
+`require`; do not import files under `dist`.
 
 ## Agent guidance
 
