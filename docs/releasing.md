@@ -2,19 +2,13 @@
 
 `@koonweee/mcp-kit` is a public package on the npm registry. A `vX.Y.Z` tag must match `package.json` and a dated `CHANGELOG.md` entry; `pnpm release:check -- vX.Y.Z` enforces that contract and the fixed package name, registry, public access, and source repository.
 
-## One-time npm and GitHub setup
+## npm and GitHub publishing setup
 
-The release operator must be authenticated as the `koonweee` npm user or otherwise have publish access to its scope. Do not rename the package to work around an authentication or publication failure.
+The npm package has a GitHub Actions trusted publisher configured for organization/user `koonweee`, repository `mcp-kit`, workflow filename `release.yml`, no environment, and the `npm publish` action only. The release workflow grants `id-token: write` and publishes through short-lived OIDC authentication; it has no npm token fallback or Actions publishing secret.
 
-npm trusted publishers are configured from an existing package's settings, so the first version needs a temporary bootstrap credential:
+The initial `v0.1.0` publication used a short-lived bootstrap token because npm only allows trusted-publisher configuration after a package exists. That token was revoked and the GitHub `NPM_TOKEN` secret was removed after trusted publishing was enabled. Do not recreate either for normal releases.
 
-1. Enable two-factor authentication on the npm operator account. Create a short-lived granular npm token with read/write publication access and 2FA bypass, restricted to the `@koonweee` scope when npm offers that choice.
-2. Add the token as the `NPM_TOKEN` Actions secret in `koonweee/mcp-kit`. Never put it in a file, command argument, issue, log, or commit.
-3. Push the fully validated first tag. The release workflow publishes with npm CLI 11.12.1 on a GitHub-hosted runner; npm uses trusted-publisher OIDC first and falls back to `NPM_TOKEN` only while no trusted publisher exists.
-4. In the new package's npm settings, add a GitHub Actions trusted publisher with organization/user `koonweee`, repository `mcp-kit`, workflow filename `release.yml`, no environment, and the `npm publish` action allowed.
-5. Delete the GitHub `NPM_TOKEN` secret and revoke the npm token. In npm publishing access, require two-factor authentication and disallow token-based publishing.
-
-Future releases need no npm credential. The workflow already grants only `contents: read` and `id-token: write`, uses the public npm registry, and publishes through short-lived OIDC authentication. npm automatically attaches provenance for a public package when the source GitHub repository is also public. GitHub repository visibility is a separate decision; a private source repository can use trusted publishing but npm will not generate provenance for it.
+The workflow grants only `contents: read` and `id-token: write`, uses the public npm registry, and installs npm CLI 11.12.1 before publishing. npm automatically attaches provenance for a public package when the source GitHub repository is also public. GitHub repository visibility is a separate decision; a private source repository can use trusted publishing but npm will not generate provenance for it.
 
 ## Normal release flow
 
@@ -28,7 +22,7 @@ The tag-triggered workflow repeats `release:check` and the full `verify` gate, c
 
 ## Failure recovery
 
-- If authentication fails before npm accepts the package, correct the npm scope access, bootstrap secret, or trusted-publisher fields and rerun the same failed workflow. The trusted-publisher repository and workflow filename are case-sensitive.
+- If authentication fails before npm accepts the package, correct the npm scope access or trusted-publisher fields and rerun the same failed workflow. The trusted-publisher repository and workflow filename are case-sensitive; do not add a persistent token fallback.
 - If a code or metadata gate fails and `npm view @koonweee/mcp-kit@X.Y.Z version` still returns `E404`, delete only the unpublished release tag, fix and validate `main`, then recreate that version's tag on the corrected commit.
 - If npm accepted the version but a later verification step failed, do not publish or overwrite that version again. Inspect the registry package, rerun `pnpm test:registry -- vX.Y.Z`, and treat a real artifact defect as a normal subsequent semantic-versioned fix.
 - If npm reports a version conflict, stop and inspect the existing registry artifact. Never overwrite it and never invent a different version merely to make the workflow green.

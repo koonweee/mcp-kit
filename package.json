@@ -1,6 +1,6 @@
 {
   "name": "@koonweee/mcp-kit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Personal TypeScript toolkit for defining repeatable, stateless MCP servers with Node and Auth0.",
   "type": "module",
   "license": "MIT",

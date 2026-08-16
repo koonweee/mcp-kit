@@ -30,8 +30,4 @@ jobs:
           path: release/*.tgz
       - name: Publish public package
         run: npm publish ./release/*.tgz --access public
-        env:
-          # Needed only to bootstrap the first version. npm uses trusted-publisher
-          # OIDC before falling back to this secret; remove it after setup.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: pnpm test:registry -- "$GITHUB_REF_NAME"

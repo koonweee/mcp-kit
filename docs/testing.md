@@ -53,7 +53,7 @@ pnpm pack:check
 pnpm test:exports
 pnpm test:consumer
 pnpm test:container
-pnpm release:check -- v0.1.0
+pnpm release:check -- vX.Y.Z
 
 # canonical full gate
 pnpm verify

@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 - 2026-08-16
 
 - Official SDK v2 `ServerContext` and `InputRequiredResult` pass-through for SDK-native multi-round tool input.
+- OIDC-only trusted publishing and a longer registry-propagation verification window.
 
 ## 0.1.0 - 2026-08-16
 

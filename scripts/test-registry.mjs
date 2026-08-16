@@ -14,8 +14,10 @@ if (version !== packageJson.version) {
 }
 
 const spec = `${packageJson.name}@${version}`;
+const registryLookupAttempts = 60;
+const registryLookupDelayMs = 5_000;
 let published;
-for (let attempt = 1; attempt <= 12; attempt += 1) {
+for (let attempt = 1; attempt <= registryLookupAttempts; attempt += 1) {
   try {
     const result = await run(
       'npm',
@@ -25,8 +27,8 @@ for (let attempt = 1; attempt <= 12; attempt += 1) {
     published = JSON.parse(result.stdout);
     break;
   } catch (error) {
-    if (attempt === 12) throw error;
-    await delay(5_000);
+    if (attempt === registryLookupAttempts) throw error;
+    await delay(registryLookupDelayMs);
   }
 }
 if (
