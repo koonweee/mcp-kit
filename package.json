@@ -1,0 +1,70 @@
+{
+  "name": "@jtkw/mcp-kit",
+  "version": "0.1.0",
+  "description": "Personal TypeScript toolkit for defining repeatable, stateless MCP servers with Node and Auth0.",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "sideEffects": false,
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@11.22.0",
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
+    },
+    "./auth0": {
+      "types": "./dist/auth0/index.d.ts",
+      "import": "./dist/auth0/index.js"
+    },
+    "./test": {
+      "types": "./dist/test/index.d.ts",
+      "import": "./dist/test/index.js"
+    }
+  },
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "build": "pnpm clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:example": "tsc -p examples/basic-node/tsconfig.json --noEmit",
+    "lint": "pnpm build && eslint . --max-warnings 0 && prettier --check .",
+    "lint:fix": "eslint . --fix && prettier --write .",
+    "test": "vitest run",
+    "test:exports": "pnpm build && node scripts/test-exports.mjs",
+    "test:consumer": "pnpm build && node scripts/test-consumer.mjs",
+    "test:container": "pnpm build && node scripts/test-container.mjs",
+    "pack:check": "pnpm build && pnpm pack --dry-run && node scripts/check-package.mjs",
+    "release:check": "node scripts/check-release.mjs",
+    "docs:check": "node scripts/check-docs.mjs",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm typecheck:example && pnpm docs:check && pnpm test:exports && pnpm test:consumer && pnpm test:container && pnpm pack:check",
+    "prepack": "pnpm build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/node": "2.0.0",
+    "@modelcontextprotocol/client": "2.0.0",
+    "@modelcontextprotocol/server": "2.0.0",
+    "jose": "6.2.9",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.13.3",
+    "eslint": "10.8.1",
+    "prettier": "3.9.6",
+    "tsx": "4.23.12",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.67.0",
+    "vitest": "4.1.10"
+  }
+}

@@ -1,0 +1,8 @@
+node_modules/
+.pnpm-store/
+dist/
+coverage/
+.tmp/
+*.tgz
+logs/
+.DS_Store

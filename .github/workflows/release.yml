@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          registry-url: ${{ vars.NPM_REGISTRY_URL }}
+      - run: corepack enable && corepack prepare pnpm@11.22.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm release:check -- "$GITHUB_REF_NAME"
+      - run: pnpm verify
+      - run: mkdir release && pnpm pack --pack-destination release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mcp-kit-package
+          path: release/*.tgz
+      - name: Publish to the configured private registry
+        if: vars.NPM_PUBLISH_ENABLED == 'true'
+        run: |
+          node -e "const p=require('./package.json'); if(p.private) throw new Error('Confirm registry/scope and set private=false before publishing')"
+          pnpm publish --provenance --no-git-checks --access restricted
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

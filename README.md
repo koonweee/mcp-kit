@@ -1,0 +1,56 @@
+# mcp-kit
+
+`@jtkw/mcp-kit` is a small TypeScript toolkit for defining independently deployed, stateless MCP servers in a personal stack. It provides portable tool definitions, a Node Streamable HTTP adapter, Auth0 resource-server support, safe policy and logging defaults, and test helpers. Service tools, backend clients, credentials, and deployment stay in the consuming service repository.
+
+The first release supports Node.js 24 or newer. Cloudflare is a documented adapter seam, not a supported runtime.
+
+## Install
+
+After the package is available from the configured private registry:
+
+```bash
+pnpm add @jtkw/mcp-kit zod
+```
+
+Define tools with `defineTool` and `defineServer`, then pass the definition to `serveNode`. See [Defining a server](docs/server-definition.md) for the complete minimal example and [Auth0](docs/auth0.md) for protecting a public endpoint.
+
+```ts
+import { defineServer, defineTool } from '@jtkw/mcp-kit';
+import { serveNode } from '@jtkw/mcp-kit/node';
+import { z } from 'zod/v4';
+
+const ping = defineTool<Record<string, never>>()({
+  name: 'ping',
+  description: 'Return a health message',
+  inputSchema: z.object({}),
+  requiredScopes: [],
+  risk: { kind: 'read' },
+  handler: () => ({ content: [{ type: 'text', text: 'pong' }] }),
+});
+
+const definition = defineServer<Record<string, never>>()({
+  name: 'example',
+  version: '1.0.0',
+  tools: [ping],
+});
+
+await serveNode(definition, { dependencies: () => ({}) });
+```
+
+## Guides
+
+- [Architecture and boundaries](docs/architecture.md)
+- [Defining a server](docs/server-definition.md)
+- [Auth0 resource-server setup](docs/auth0.md)
+- [Testing and package verification](docs/testing.md)
+- [Runtime adapters](docs/adapters.md)
+- [Releasing and adopting](docs/releasing.md)
+
+The only public package paths are `@jtkw/mcp-kit`, `@jtkw/mcp-kit/node`, `@jtkw/mcp-kit/auth0`, and `@jtkw/mcp-kit/test`.
+
+## Agent guidance
+
+- Owning files: `src/index.ts`, the four public subpath indexes, and `package.json` own the contract summarized here.
+- Preserve the repository boundaries in [Architecture](docs/architecture.md); never move service tools, clients, secrets, or deployment into this package.
+- Verify README or public-contract changes with `pnpm docs:check`, `pnpm test:exports`, and `pnpm test:consumer`.
+- Read [Architecture](docs/architecture.md) next for dependency direction and deliberate exclusions.
