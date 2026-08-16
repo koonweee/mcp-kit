@@ -9,7 +9,7 @@ permissions:
   id-token: write
 
 jobs:
-  artifact:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -17,7 +17,8 @@ jobs:
         with:
           node-version-file: .nvmrc
           package-manager-cache: false
-          registry-url: ${{ vars.NPM_REGISTRY_URL }}
+          registry-url: https://registry.npmjs.org
+      - run: npm install --global npm@11.12.1
       - run: corepack enable && corepack prepare pnpm@11.22.0 --activate
       - run: pnpm install --frozen-lockfile
       - run: pnpm release:check -- "$GITHUB_REF_NAME"
@@ -27,10 +28,10 @@ jobs:
         with:
           name: mcp-kit-package
           path: release/*.tgz
-      - name: Publish to the configured private registry
-        if: vars.NPM_PUBLISH_ENABLED == 'true'
-        run: |
-          node -e "const p=require('./package.json'); if(p.private) throw new Error('Confirm registry/scope and set private=false before publishing')"
-          pnpm publish --provenance --no-git-checks --access restricted
+      - name: Publish public package
+        run: npm publish release/*.tgz --access public
         env:
+          # Needed only to bootstrap the first version. npm uses trusted-publisher
+          # OIDC before falling back to this secret; remove it after setup.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: pnpm test:registry -- "$GITHUB_REF_NAME"

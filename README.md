@@ -6,7 +6,7 @@ The first release supports Node.js 24 or newer. Cloudflare is a documented adapt
 
 ## Install
 
-After the package is available from the configured private registry:
+Install the public package from npm:
 
 ```bash
 pnpm add @jtkw/mcp-kit zod

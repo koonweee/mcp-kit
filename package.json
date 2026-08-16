@@ -4,7 +4,18 @@
   "description": "Personal TypeScript toolkit for defining repeatable, stateless MCP servers with Node and Auth0.",
   "type": "module",
   "license": "MIT",
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/koonweee/mcp-kit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/koonweee/mcp-kit/issues"
+  },
+  "homepage": "https://github.com/koonweee/mcp-kit#readme",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
   "sideEffects": false,
   "engines": {
     "node": ">=24"
@@ -46,6 +57,7 @@
     "test:container": "pnpm build && node scripts/test-container.mjs",
     "pack:check": "pnpm build && pnpm pack --dry-run && node scripts/check-package.mjs",
     "release:check": "node scripts/check-release.mjs",
+    "test:registry": "node scripts/test-registry.mjs",
     "docs:check": "node scripts/check-docs.mjs",
     "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm typecheck:example && pnpm docs:check && pnpm test:exports && pnpm test:consumer && pnpm test:container && pnpm pack:check",
     "prepack": "pnpm build"

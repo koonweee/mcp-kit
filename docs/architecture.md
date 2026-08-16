@@ -48,7 +48,7 @@ Node is the only runtime implementation. The Cloudflare directory records a futu
 
 The package follows semantic versioning once released. A breaking change to a public subpath, definition or context type, Node minimum, supported MCP protocol era, authentication claim contract, or adapter behavior requires a major release. Additive helpers and support for another protocol revision may be minor when existing consumers continue to work unchanged. Security and correctness fixes are patches when they preserve the contract.
 
-Consumers must pin a released package version rather than import a sibling checkout or unpinned Git branch. Release gates include the full test suite, packed-file inspection, imports from the tarball, and an external consumer build. The current package remains private until its registry and scope are confirmed.
+Consumers must pin a released package version rather than import a sibling checkout or unpinned Git branch. Release gates include the full test suite, packed-file inspection, imports from the tarball, an external consumer build, and post-publication imports from the public npm registry.
 
 See [Releasing and adopting](releasing.md) for the tagged artifact contract and the first real consumer checklist.
 
