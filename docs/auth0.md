@@ -11,9 +11,9 @@ Configure one Auth0 API for each independently deployed MCP resource:
 3. Prefer the `rfc9068_profile_authz` token dialect and enable RBAC policy enforcement when roles control tools.
 4. Register every OAuth scope that tools declare, with least-privilege descriptions.
 5. Enable Auth0's Resource Parameter Compatibility Profile and Include Issuer in Authorization Responses tenant settings for MCP clients.
-6. Use the exact issuer that appears in tokens, normally `https://TENANT.auth0.com/` with its trailing slash. A custom Auth0 domain is a different issuer and must use its matching JWKS.
+6. Use the exact issuer published by Auth0 discovery, including its trailing slash. When selecting a custom Auth0 domain, use that domain consistently for `AUTH0_ISSUER`, authorization-server metadata, token and JWKS validation, and client authorization flows. Never mix the canonical tenant issuer with the custom issuer.
 
-Auth0 authorization requests must receive the same canonical resource value, and tokens must contain it in `aud`. The verifier checks signature, RS256, issuer, audience, expiry, and a non-empty subject. It maps the space-delimited `scope` claim to the principal. Auth0's `permissions` claim is not silently promoted into OAuth scopes.
+Each MCP resource remains an independent endpoint and OAuth audience regardless of which Auth0 issuer domain is selected. Auth0 authorization requests must receive that resource's canonical URL, and tokens must contain it in `aud`. The verifier checks signature, RS256, issuer, audience, expiry, and a non-empty subject. It maps the space-delimited `scope` claim to the principal. Auth0's `permissions` claim is not silently promoted into OAuth scopes.
 
 Auth0 tenant provisioning, client registration policy, CIMD or DCR administration, roles, login UI, and downstream token exchange remain outside this library. Follow [Auth0's MCP guidance](https://auth0.com/ai/docs/mcp/get-started/authorization-for-your-mcp-server) for those operator actions.
 
@@ -86,6 +86,6 @@ Do not paste a real token into documentation, chat, test fixtures, or command hi
 ## Agent guidance
 
 - Owning files: `src/auth0/verifier.ts`, `src/auth0/authenticate.ts`, and `src/auth0/metadata.ts`; HTTP composition lives in `src/node/server.ts`.
-- Preserve exact trusted issuer and audience checks, RS256, required expiry and subject, bounded public-key caching, generic public errors, path-aware discovery, and zero token storage.
+- Preserve exact trusted issuer and audience checks, custom-domain issuer consistency, RS256, required expiry and subject, bounded public-key caching, generic public errors, path-aware discovery, and zero token storage.
 - Verify changes with `pnpm vitest run test/auth0 test/node/server.test.ts`; use the manual smoke only after automated gates pass.
 - Read [Testing](testing.md) next for local JWT fixtures and authenticated HTTP coverage.
