@@ -3,8 +3,8 @@ import { resolve } from 'node:path';
 import { root } from './package-utils.mjs';
 
 const packageJson = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
-if (packageJson.name !== '@jtkw/mcp-kit') {
-  throw new Error('package.json name must remain @jtkw/mcp-kit');
+if (packageJson.name !== '@koonweee/mcp-kit') {
+  throw new Error('package.json name must remain @koonweee/mcp-kit');
 }
 if (packageJson.private === true) {
   throw new Error('package.json must not be private for a public npm release');

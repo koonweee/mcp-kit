@@ -60,10 +60,10 @@ try {
     join(workspace, 'index.mjs'),
     `
 const surfaces = await Promise.all([
-  import('@jtkw/mcp-kit'),
-  import('@jtkw/mcp-kit/node'),
-  import('@jtkw/mcp-kit/auth0'),
-  import('@jtkw/mcp-kit/test'),
+  import('@koonweee/mcp-kit'),
+  import('@koonweee/mcp-kit/node'),
+  import('@koonweee/mcp-kit/auth0'),
+  import('@koonweee/mcp-kit/test'),
 ]);
 for (const [index, surface] of surfaces.entries()) {
   if (Object.keys(surface).length === 0) throw new Error('empty public subpath ' + index);

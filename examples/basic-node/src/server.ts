@@ -7,9 +7,9 @@ import {
   getAuth0ProtectedResourceMetadataUrl,
   principalFromAuthInfo,
   type Auth0JwksOptions,
-} from '@jtkw/mcp-kit/auth0';
-import { defineServer, defineTool } from '@jtkw/mcp-kit';
-import { serveNode, type RunningNodeMcpServer } from '@jtkw/mcp-kit/node';
+} from '@koonweee/mcp-kit/auth0';
+import { defineServer, defineTool } from '@koonweee/mcp-kit';
+import { serveNode, type RunningNodeMcpServer } from '@koonweee/mcp-kit/node';
 
 interface FakeBackend {
   read(): string;

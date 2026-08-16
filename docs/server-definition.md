@@ -5,7 +5,7 @@ A service declares explicit tools in portable code and injects backend dependenc
 ## Minimal definition
 
 ```ts
-import { McpPublicError, defineServer, defineTool } from '@jtkw/mcp-kit';
+import { McpPublicError, defineServer, defineTool } from '@koonweee/mcp-kit';
 import { z } from 'zod/v4';
 
 interface Dependencies {
@@ -57,7 +57,7 @@ Throw `McpPublicError` only when a stable message is safe for the caller. Unknow
 The Node adapter calls `dependencies(context)` for each request. Load process configuration in the consumer entrypoint, then construct a fresh dependency view there. Do not place service credentials in a definition, principal claims, result, or log record.
 
 ```ts
-import { serveNode } from '@jtkw/mcp-kit/node';
+import { serveNode } from '@koonweee/mcp-kit/node';
 import { notesServer } from './definition.js';
 import { createNotesClient } from './notes-client.js';
 

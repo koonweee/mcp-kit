@@ -23,10 +23,10 @@ service definition and dependencies
 
 The supported public paths are:
 
-- `@jtkw/mcp-kit` for definitions, context, policy, logging, and public errors;
-- `@jtkw/mcp-kit/node` for stateless Node serving;
-- `@jtkw/mcp-kit/auth0` for JWT verification, bearer gating, and discovery; and
-- `@jtkw/mcp-kit/test` for principals, in-memory protocol tests, and ephemeral JWT fixtures.
+- `@koonweee/mcp-kit` for definitions, context, policy, logging, and public errors;
+- `@koonweee/mcp-kit/node` for stateless Node serving;
+- `@koonweee/mcp-kit/auth0` for JWT verification, bearer gating, and discovery; and
+- `@koonweee/mcp-kit/test` for principals, in-memory protocol tests, and ephemeral JWT fixtures.
 
 No internal source path is a compatibility surface.
 

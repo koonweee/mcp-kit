@@ -10,10 +10,10 @@
     "exactOptionalPropertyTypes": true,
     "verbatimModuleSyntax": true,
     "paths": {
-      "@jtkw/mcp-kit": ["../../dist/index.d.ts"],
-      "@jtkw/mcp-kit/node": ["../../dist/node/index.d.ts"],
-      "@jtkw/mcp-kit/auth0": ["../../dist/auth0/index.d.ts"],
-      "@jtkw/mcp-kit/test": ["../../dist/test/index.d.ts"]
+      "@koonweee/mcp-kit": ["../../dist/index.d.ts"],
+      "@koonweee/mcp-kit/node": ["../../dist/node/index.d.ts"],
+      "@koonweee/mcp-kit/auth0": ["../../dist/auth0/index.d.ts"],
+      "@koonweee/mcp-kit/test": ["../../dist/test/index.d.ts"]
     },
     "rootDir": "src",
     "outDir": "dist",

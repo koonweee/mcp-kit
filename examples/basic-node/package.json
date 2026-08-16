@@ -7,7 +7,7 @@
     "start": "tsx src/server.ts"
   },
   "dependencies": {
-    "@jtkw/mcp-kit": "file:./mcp-kit.tgz",
+    "@koonweee/mcp-kit": "file:./mcp-kit.tgz",
     "zod": "4.4.3"
   },
   "devDependencies": {

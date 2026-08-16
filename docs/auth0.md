@@ -28,8 +28,8 @@ import {
   createAuth0Verifier,
   getAuth0ProtectedResourceMetadataUrl,
   principalFromAuthInfo,
-} from '@jtkw/mcp-kit/auth0';
-import { serveNode } from '@jtkw/mcp-kit/node';
+} from '@koonweee/mcp-kit/auth0';
+import { serveNode } from '@koonweee/mcp-kit/node';
 import { notesServer } from './definition.js';
 import { createNotesClient } from './notes-client.js';
 
@@ -70,7 +70,7 @@ JWKS lookup defaults to a five-second timeout, a 30-second refresh cooldown, and
 
 ## Local tests and manual tenant smoke
 
-Automated tests use `createTestJwtAuthority` from `@jtkw/mcp-kit/test`; they do not need or contact Auth0. Run them as described in [Testing](testing.md).
+Automated tests use `createTestJwtAuthority` from `@koonweee/mcp-kit/test`; they do not need or contact Auth0. Run them as described in [Testing](testing.md).
 
 After automated verification, perform this optional smoke against the real tenant before the first deployment:
 

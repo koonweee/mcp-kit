@@ -7,8 +7,8 @@ Test at the narrowest seam that proves the behavior, then use the packed-package
 Use `createTestPrincipal`, `createRequestContext`, and `invokeTool` to test one tool with Zod parsing, scope policy, safe error conversion, and logging but without a transport.
 
 ```ts
-import { createRequestContext, silentLogger } from '@jtkw/mcp-kit';
-import { createTestPrincipal, invokeTool } from '@jtkw/mcp-kit/test';
+import { createRequestContext, silentLogger } from '@koonweee/mcp-kit';
+import { createTestPrincipal, invokeTool } from '@koonweee/mcp-kit/test';
 import { getNote } from '../src/definition.js';
 
 const result = await invokeTool(

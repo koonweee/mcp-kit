@@ -13,7 +13,7 @@ try {
         name: 'mcp-kit-external-export-test',
         private: true,
         type: 'module',
-        dependencies: { '@jtkw/mcp-kit': fileDependency(tarball) },
+        dependencies: { '@koonweee/mcp-kit': fileDependency(tarball) },
         devDependencies: {
           '@types/node': '24.13.3',
           typescript: '6.0.3',
@@ -27,15 +27,18 @@ try {
     join(workspace, 'index.mjs'),
     `
 const surfaces = await Promise.all([
-  import('@jtkw/mcp-kit'),
-  import('@jtkw/mcp-kit/node'),
-  import('@jtkw/mcp-kit/auth0'),
-  import('@jtkw/mcp-kit/test'),
+  import('@koonweee/mcp-kit'),
+  import('@koonweee/mcp-kit/node'),
+  import('@koonweee/mcp-kit/auth0'),
+  import('@koonweee/mcp-kit/test'),
 ]);
 for (const [index, surface] of surfaces.entries()) {
   if (Object.keys(surface).length === 0) throw new Error('empty public subpath ' + index);
 }
-for (const privatePath of ['@jtkw/mcp-kit/cloudflare', '@jtkw/mcp-kit/dist/core/definition.js']) {
+for (const privatePath of [
+  '@koonweee/mcp-kit/cloudflare',
+  '@koonweee/mcp-kit/dist/core/definition.js',
+]) {
   try {
     await import(privatePath);
     throw new Error('private path unexpectedly exported: ' + privatePath);
@@ -51,10 +54,10 @@ console.log('all four public subpaths imported from the packed artifact');
   await writeFile(
     join(workspace, 'index.ts'),
     `
-import { defineServer, defineTool, type McpPrincipal } from '@jtkw/mcp-kit';
-import { createNodeMcpHandler, type NodeMcpHandler } from '@jtkw/mcp-kit/node';
-import { createAuth0Verifier, type Auth0VerifierOptions } from '@jtkw/mcp-kit/auth0';
-import { connectInMemory, createTestPrincipal, type InMemoryMcpClient } from '@jtkw/mcp-kit/test';
+import { defineServer, defineTool, type McpPrincipal } from '@koonweee/mcp-kit';
+import { createNodeMcpHandler, type NodeMcpHandler } from '@koonweee/mcp-kit/node';
+import { createAuth0Verifier, type Auth0VerifierOptions } from '@koonweee/mcp-kit/auth0';
+import { connectInMemory, createTestPrincipal, type InMemoryMcpClient } from '@koonweee/mcp-kit/test';
 
 const principal: McpPrincipal = createTestPrincipal();
 const authOptions = {} as Auth0VerifierOptions;

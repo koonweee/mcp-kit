@@ -26,7 +26,7 @@ A future adapter must preserve the same service definition and handler types. It
 
 ## Cloudflare status
 
-Cloudflare is planned, unimplemented, unsupported, and unexported. There is no `@jtkw/mcp-kit/cloudflare` path, runtime dependency, bindings type in the public core API, or placeholder function that throws. The compile-only design note is in [`src/adapters/cloudflare/README.md`](../src/adapters/cloudflare/README.md).
+Cloudflare is planned, unimplemented, unsupported, and unexported. There is no `@koonweee/mcp-kit/cloudflare` path, runtime dependency, bindings type in the public core API, or placeholder function that throws. The compile-only design note is in [`src/adapters/cloudflare/README.md`](../src/adapters/cloudflare/README.md).
 
 Adding it requires a concrete consumer and acceptance work for host/origin policy, explicit bindings, Web handler composition, request isolation, Auth0/JWKS behavior, limits, shutdown-equivalent cleanup, package exports, and external-consumer tests. Until then, Node remains the only advertised runtime.
 

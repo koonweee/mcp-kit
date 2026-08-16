@@ -15,7 +15,7 @@ try {
         private: true,
         type: 'module',
         dependencies: {
-          '@jtkw/mcp-kit': fileDependency(tarball),
+          '@koonweee/mcp-kit': fileDependency(tarball),
           zod: '4.4.3',
         },
         devDependencies: {
@@ -55,8 +55,8 @@ try {
     join(workspace, 'smoke.mjs'),
     `
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
-import { createTestJwtAuthority } from '@jtkw/mcp-kit/test';
-import { getAuth0ProtectedResourceMetadataUrl } from '@jtkw/mcp-kit/auth0';
+import { createTestJwtAuthority } from '@koonweee/mcp-kit/test';
+import { getAuth0ProtectedResourceMetadataUrl } from '@koonweee/mcp-kit/auth0';
 import { startExample } from './dist/server.js';
 
 const authority = await createTestJwtAuthority();
