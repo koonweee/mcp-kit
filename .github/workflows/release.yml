@@ -29,7 +29,7 @@ jobs:
           name: mcp-kit-package
           path: release/*.tgz
       - name: Publish public package
-        run: npm publish release/*.tgz --access public
+        run: npm publish ./release/*.tgz --access public
         env:
           # Needed only to bootstrap the first version. npm uses trusted-publisher
           # OIDC before falling back to this secret; remove it after setup.

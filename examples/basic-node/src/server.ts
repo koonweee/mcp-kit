@@ -27,6 +27,7 @@ function createFakeBackend(): FakeBackend {
 }
 
 const tool = defineTool<{ readonly backend: FakeBackend }>();
+const statusOutputSchema = z.object({ status: z.string() });
 
 export const exampleDefinition = defineServer<{ readonly backend: FakeBackend }>()({
   name: 'mcp-kit-basic-node',
@@ -37,6 +38,8 @@ export const exampleDefinition = defineServer<{ readonly backend: FakeBackend }>
       name: 'read-status',
       description: 'Read the fake backend status',
       inputSchema: z.object({}),
+      outputSchema: statusOutputSchema,
+      _meta: { 'example.dev/category': 'status' },
       requiredScopes: ['example:read'],
       risk: { kind: 'read' },
       handler(_input, context) {

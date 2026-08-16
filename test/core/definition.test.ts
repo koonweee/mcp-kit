@@ -9,6 +9,7 @@ import {
   silentLogger,
   type McpLogRecord,
   type McpLogger,
+  type McpToolResult,
 } from '../../src/index.js';
 import { connectInMemory, createTestPrincipal, invokeTool } from '../../src/test/index.js';
 
@@ -16,10 +17,14 @@ interface Dependencies {
   readonly prefix: string;
 }
 
+const echoOutputSchema = z.object({ text: z.string() });
+
 const echoTool = defineTool<Dependencies>()({
   name: 'echo',
   description: 'Echo a value',
   inputSchema: z.object({ value: z.string() }),
+  outputSchema: echoOutputSchema,
+  _meta: { 'example.dev/presentation': { kind: 'echo' } },
   requiredScopes: ['echo:read'],
   risk: { kind: 'read' },
   handler(input, context) {
@@ -50,6 +55,14 @@ describe('portable definitions', () => {
 
     const listed = await connected.client.listTools();
     expect(listed.tools).toHaveLength(1);
+    expect(listed.tools[0]?.outputSchema).toMatchObject({
+      type: 'object',
+      properties: { text: { type: 'string' } },
+      required: ['text'],
+    });
+    expect(listed.tools[0]?._meta).toEqual({
+      'example.dev/presentation': { kind: 'echo' },
+    });
     expect(listed.tools[0]?.annotations).toEqual({
       readOnlyHint: true,
       destructiveHint: false,
@@ -57,7 +70,43 @@ describe('portable definitions', () => {
       openWorldHint: false,
     });
     const result = await connected.client.callTool({ name: 'echo', arguments: { value: 'hello' } });
-    expect(result).toMatchObject({ content: [{ type: 'text', text: '>hello' }] });
+    expect(result).toMatchObject({
+      content: [{ type: 'text', text: '>hello' }],
+      structuredContent: { text: '>hello' },
+    });
+    await connected.close();
+  });
+
+  it('keeps tools without output schemas or metadata compatible', async () => {
+    const plainTool = defineTool<Dependencies>()({
+      name: 'plain',
+      description: 'Return plain content',
+      inputSchema: z.object({}),
+      requiredScopes: [],
+      risk: { kind: 'read' },
+      handler() {
+        return { content: [{ type: 'text', text: 'plain' }] };
+      },
+    });
+    const connected = await connectInMemory(
+      defineServer<Dependencies>()({
+        name: 'compatibility-test',
+        version: '1.0.0',
+        tools: [plainTool],
+      }),
+      createRequestContext({
+        requestId: 'request-compatibility',
+        logger: silentLogger,
+        dependencies: { prefix: '' },
+      }),
+    );
+
+    const listed = await connected.client.listTools();
+    expect(listed.tools[0]?.outputSchema).toBeUndefined();
+    expect(listed.tools[0]?._meta).toBeUndefined();
+    expect(await connected.client.callTool({ name: 'plain', arguments: {} })).toMatchObject({
+      content: [{ type: 'text', text: 'plain' }],
+    });
     await connected.close();
   });
 
@@ -67,7 +116,10 @@ describe('portable definitions', () => {
       ...echoTool,
       handler() {
         called = true;
-        return { content: [{ type: 'text', text: 'unsafe' }] };
+        return {
+          content: [{ type: 'text', text: 'unsafe' }],
+          structuredContent: { text: 'unsafe' },
+        };
       },
     });
     const result = await invokeTool(
@@ -93,7 +145,10 @@ describe('portable definitions', () => {
           ...echoTool,
           handler() {
             called = true;
-            return { content: [{ type: 'text', text: 'called' }] };
+            return {
+              content: [{ type: 'text', text: 'called' }],
+              structuredContent: { text: 'called' },
+            };
           },
         }),
       ],
@@ -161,6 +216,28 @@ describe('portable definitions', () => {
       destructiveHint: true,
       idempotentHint: false,
       openWorldHint: true,
+    });
+  });
+
+  it('infers structured content from the declared output schema', () => {
+    expectTypeOf<Awaited<ReturnType<typeof echoTool.handler>>>().toEqualTypeOf<
+      McpToolResult<typeof echoOutputSchema>
+    >();
+
+    defineTool<Dependencies>()({
+      name: 'invalid-output',
+      description: 'Compile-time output fixture',
+      inputSchema: z.object({}),
+      outputSchema: echoOutputSchema,
+      requiredScopes: [],
+      risk: { kind: 'read' },
+      // @ts-expect-error Successful structured content must match outputSchema.
+      handler() {
+        return {
+          content: [{ type: 'text', text: 'invalid' }],
+          structuredContent: { text: 123 },
+        };
+      },
     });
   });
 

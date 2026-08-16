@@ -92,11 +92,25 @@ try {
   if (unauthenticated.status !== 401) throw new Error('missing 401');
 
   const allowed = await makeClient('example:read example:write');
-  const names = (await allowed.listTools()).tools.map((tool) => tool.name).sort();
+  const listedTools = (await allowed.listTools()).tools;
+  const names = listedTools.map((tool) => tool.name).sort();
   if (names.join(',') !== 'read-status,write-status') throw new Error('tool listing failed');
+  const readTool = listedTools.find((tool) => tool.name === 'read-status');
+  const writeTool = listedTools.find((tool) => tool.name === 'write-status');
+  if (readTool?.outputSchema?.properties?.status?.type !== 'string') {
+    throw new Error('typed output schema was not advertised');
+  }
+  if (readTool?._meta?.['example.dev/category'] !== 'status') {
+    throw new Error('tool metadata was not advertised');
+  }
+  if (writeTool?.outputSchema !== undefined || writeTool?._meta !== undefined) {
+    throw new Error('optional tool fields changed untyped tool discovery');
+  }
   const read = await allowed.callTool({ name: 'read-status', arguments: {} });
   const write = await allowed.callTool({ name: 'write-status', arguments: { value: 'allowed-value' } });
-  if (read.isError || write.isError) throw new Error('allowed tool call failed');
+  if (read.isError || read.structuredContent?.status !== 'ready' || write.isError) {
+    throw new Error('allowed tool call failed');
+  }
   const changed = await allowed.callTool({ name: 'read-status', arguments: {} });
   if (changed.content?.[0]?.text !== 'allowed-value') throw new Error('allowed write did not reach backend');
   await allowed.close();

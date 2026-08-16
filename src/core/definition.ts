@@ -1,24 +1,46 @@
-import { McpServer, type CallToolResult } from '@modelcontextprotocol/server';
+import {
+  McpServer,
+  type CallToolResult,
+  type MetaObject,
+  type StandardSchemaWithJSON,
+} from '@modelcontextprotocol/server';
 import type { z } from 'zod/v4';
 import type { McpRequestContext } from './context.js';
 import { toPublicError } from './errors.js';
 import { enforceRequiredScopes, riskToAnnotations, type McpToolRisk } from './policy.js';
 
+type McpToolErrorResult = CallToolResult & { readonly isError: true };
+
+type McpToolSuccessResult<TOutputSchema extends StandardSchemaWithJSON> = CallToolResult & {
+  readonly structuredContent: StandardSchemaWithJSON.InferOutput<TOutputSchema>;
+  readonly isError?: false;
+};
+
 /** MCP-compatible result returned by kit tool handlers. `content` is always required. */
-export type McpToolResult = CallToolResult;
+export type McpToolResult<TOutputSchema extends StandardSchemaWithJSON | undefined = undefined> =
+  | McpToolErrorResult
+  | (TOutputSchema extends StandardSchemaWithJSON
+      ? McpToolSuccessResult<TOutputSchema>
+      : CallToolResult);
 
 /** One explicit, typed tool owned by a consuming service. */
-export interface McpToolDefinition<TDependencies, TInputSchema extends z.ZodType> {
+export interface McpToolDefinition<
+  TDependencies,
+  TInputSchema extends z.ZodType,
+  TOutputSchema extends StandardSchemaWithJSON | undefined = undefined,
+> {
   readonly name: string;
   readonly title?: string;
   readonly description: string;
   readonly inputSchema: TInputSchema;
+  readonly outputSchema?: TOutputSchema;
+  readonly _meta?: MetaObject;
   readonly requiredScopes: readonly string[];
   readonly risk: McpToolRisk;
   readonly handler: (
     input: z.output<TInputSchema>,
     context: McpRequestContext<TDependencies>,
-  ) => McpToolResult | Promise<McpToolResult>;
+  ) => McpToolResult<TOutputSchema> | Promise<McpToolResult<TOutputSchema>>;
 }
 
 /** A portable server definition with no runtime, Auth0, environment, or service-client imports. */
@@ -27,7 +49,11 @@ export interface McpServerDefinition<TDependencies> {
   readonly version: string;
   readonly title?: string;
   readonly instructions?: string;
-  readonly tools: readonly McpToolDefinition<TDependencies, z.ZodType>[];
+  readonly tools: readonly McpToolDefinition<
+    TDependencies,
+    z.ZodType,
+    StandardSchemaWithJSON | undefined
+  >[];
   readonly extend?: (
     server: McpServer,
     context: McpRequestContext<TDependencies>,
@@ -36,9 +62,12 @@ export interface McpServerDefinition<TDependencies> {
 
 /** Curried helper that preserves dependency and Zod input inference. */
 export function defineTool<TDependencies>() {
-  return <TInputSchema extends z.ZodType>(
-    definition: McpToolDefinition<TDependencies, TInputSchema>,
-  ): McpToolDefinition<TDependencies, TInputSchema> => Object.freeze(definition);
+  return <
+    TInputSchema extends z.ZodType,
+    TOutputSchema extends StandardSchemaWithJSON | undefined = undefined,
+  >(
+    definition: McpToolDefinition<TDependencies, TInputSchema, TOutputSchema>,
+  ): McpToolDefinition<TDependencies, TInputSchema, TOutputSchema> => Object.freeze(definition);
 }
 
 /** Curried helper for a definition whose tools share one injected dependency type. */
@@ -48,11 +77,15 @@ export function defineServer<TDependencies>() {
 }
 
 /** Executes a validated tool definition with scope enforcement, sanitization, and safe logging. */
-export async function executeToolDefinition<TDependencies, TInputSchema extends z.ZodType>(
-  tool: McpToolDefinition<TDependencies, TInputSchema>,
+export async function executeToolDefinition<
+  TDependencies,
+  TInputSchema extends z.ZodType,
+  TOutputSchema extends StandardSchemaWithJSON | undefined,
+>(
+  tool: McpToolDefinition<TDependencies, TInputSchema, TOutputSchema>,
   input: z.output<TInputSchema>,
   context: McpRequestContext<TDependencies>,
-): Promise<McpToolResult> {
+): Promise<McpToolResult<TOutputSchema>> {
   const startedAt = Date.now();
   const base = {
     requestId: context.requestId,
@@ -128,7 +161,9 @@ export async function createMcpServer<TDependencies>(
         ...(tool.title ? { title: tool.title } : {}),
         description: tool.description,
         inputSchema: tool.inputSchema,
+        ...(tool.outputSchema ? { outputSchema: tool.outputSchema } : {}),
         annotations: riskToAnnotations(tool.risk),
+        ...(tool._meta ? { _meta: tool._meta } : {}),
       },
       async (input) => executeToolDefinition(tool, input, context),
     );

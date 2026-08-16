@@ -8,14 +8,19 @@ import {
   type McpToolResult,
 } from '../core/definition.js';
 import { McpPublicError } from '../core/errors.js';
+import type { StandardSchemaWithJSON } from '@modelcontextprotocol/server';
 import type { z } from 'zod/v4';
 
 /** Calls one definition directly while preserving Zod parsing, policy, logging, and sanitization. */
-export async function invokeTool<TDependencies, TInputSchema extends z.ZodType>(
-  tool: McpToolDefinition<TDependencies, TInputSchema>,
+export async function invokeTool<
+  TDependencies,
+  TInputSchema extends z.ZodType,
+  TOutputSchema extends StandardSchemaWithJSON | undefined,
+>(
+  tool: McpToolDefinition<TDependencies, TInputSchema, TOutputSchema>,
   input: unknown,
   context: McpRequestContext<TDependencies>,
-): Promise<McpToolResult> {
+): Promise<McpToolResult<TOutputSchema>> {
   const parsed = await tool.inputSchema.safeParseAsync(input);
   if (!parsed.success) {
     throw new McpPublicError('invalid_input', 'Invalid tool input', { cause: parsed.error });

@@ -18,6 +18,8 @@ const getNote = defineTool<Dependencies>()({
   name: 'get_note',
   description: 'Read one note by ID',
   inputSchema: z.object({ id: z.string().min(1) }),
+  outputSchema: z.object({ id: z.string(), note: z.string() }),
+  _meta: { 'com.example/displayMode': 'compact' },
   requiredScopes: ['notes:read'],
   risk: { kind: 'read' },
   async handler({ id }, context) {
@@ -38,7 +40,11 @@ export const notesServer = defineServer<Dependencies>()({
 });
 ```
 
-The curried helpers preserve both Zod output inference and the shared dependency type. Each tool must declare a name, description, input schema, required scopes, server-side risk, and handler. `content` is required in every result; `structuredContent` is optional.
+The curried helpers preserve schema output inference and the shared dependency type. Each tool must declare a name, description, Zod input schema, required scopes, server-side risk, and handler. `content` is required in every result.
+
+`outputSchema` is optional and accepts the same Standard Schema plus JSON Schema interface as the official SDK; Zod v4 schemas implement it directly. When present, a successful handler result must include `structuredContent` matching the schema's inferred output type. The official SDK advertises the converted JSON Schema in `tools/list` and validates successful structured output at runtime. Without `outputSchema`, `structuredContent` remains optional and keeps the SDK's `unknown` type. Error results remain exempt from output validation, matching the SDK.
+
+Tool-level `_meta` is optional extension metadata forwarded to `McpServer.registerTool()` and advertised in `tools/list`. It can carry client-specific hints, including MCP Apps metadata, but it is not an authorization or risk-policy input. Treat it as client-visible, untrusted extension data: never put credentials, tokens, personal data, or other secrets in `_meta`.
 
 ## Policy, errors, and logging
 
@@ -75,5 +81,6 @@ await serveNode(notesServer, {
 
 - Owning files: `src/core/definition.ts`, `src/core/context.ts`, `src/core/policy.ts`, `src/core/errors.ts`, and `src/core/logging.ts` own this contract.
 - Keep Zod validation, required-scope enforcement, risk policy, sanitized errors, and safe logging ahead of service behavior.
+- Pass tool schemas and extension metadata through the official SDK instead of converting, validating, or interpreting them in core; `_meta` must never contain secrets or change authorization behavior.
 - Verify definition changes with `pnpm vitest run test/core/definition.test.ts test/core/boundary.test.ts` and typecheck with `pnpm typecheck`.
 - Read [Auth0](auth0.md) next when the definition will be served publicly, or [Testing](testing.md) to test it without HTTP.

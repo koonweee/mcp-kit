@@ -4,6 +4,8 @@
 
 - Initial portable server definitions, stateless Node adapter, Auth0 resource-server support, and
   packed consumer test kit.
+- Typed Standard Schema tool outputs with inferred structured content and tool-level extension
+  metadata forwarded through the official MCP SDK.
 
 ## Agent guidance
 

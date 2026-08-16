@@ -13,7 +13,7 @@ try {
         name: 'mcp-kit-external-export-test',
         private: true,
         type: 'module',
-        dependencies: { '@koonweee/mcp-kit': fileDependency(tarball) },
+        dependencies: { '@koonweee/mcp-kit': fileDependency(tarball), zod: '4.4.3' },
         devDependencies: {
           '@types/node': '24.13.3',
           typescript: '6.0.3',
@@ -58,18 +58,46 @@ import { defineServer, defineTool, type McpPrincipal } from '@koonweee/mcp-kit';
 import { createNodeMcpHandler, type NodeMcpHandler } from '@koonweee/mcp-kit/node';
 import { createAuth0Verifier, type Auth0VerifierOptions } from '@koonweee/mcp-kit/auth0';
 import { connectInMemory, createTestPrincipal, type InMemoryMcpClient } from '@koonweee/mcp-kit/test';
+import { z } from 'zod/v4';
 
 const principal: McpPrincipal = createTestPrincipal();
 const authOptions = {} as Auth0VerifierOptions;
 const verifier = createAuth0Verifier(authOptions);
 const tool = defineTool<Record<string, never>>();
-const definition = defineServer<Record<string, never>>()({ name: 'types', version: '1.0.0', tools: [] });
+const outputSchema = z.object({ value: z.string() });
+const typedTool = tool({
+  name: 'typed',
+  description: 'Packed declaration inference fixture',
+  inputSchema: z.object({}),
+  outputSchema,
+  _meta: { 'example.dev/category': 'types' },
+  requiredScopes: [],
+  risk: { kind: 'read' },
+  handler: () => ({
+    content: [{ type: 'text', text: 'typed' }],
+    structuredContent: { value: 'typed' },
+  }),
+});
+tool({
+  name: 'invalid-typed',
+  description: 'Packed declaration rejection fixture',
+  inputSchema: z.object({}),
+  outputSchema,
+  requiredScopes: [],
+  risk: { kind: 'read' },
+  handler: () => ({
+    content: [{ type: 'text', text: 'invalid' }],
+    // @ts-expect-error Packed declarations must reject mismatched structured content.
+    structuredContent: { value: 123 },
+  }),
+});
+const definition = defineServer<Record<string, never>>()({ name: 'types', version: '1.0.0', tools: [typedTool] });
 const handler: NodeMcpHandler = createNodeMcpHandler(definition, { dependencies: () => ({}) });
 const connection: Promise<InMemoryMcpClient> = connectInMemory(
   definition,
   { requestId: 'types', principal, logger: { log() {}, error() {} }, dependencies: {} },
 );
-void [tool, verifier, handler, connection];
+void [tool, typedTool, verifier, handler, connection];
 `,
   );
   await writeFile(
