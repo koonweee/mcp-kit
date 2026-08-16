@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Official SDK v2 `ServerContext` and `InputRequiredResult` pass-through for SDK-native multi-round tool input.
+
 ## 0.1.0 - 2026-08-16
 
 - Initial portable server definitions, stateless Node adapter, Auth0 resource-server support, and

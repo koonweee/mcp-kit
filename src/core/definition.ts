@@ -1,7 +1,9 @@
 import {
   McpServer,
   type CallToolResult,
+  type InputRequiredResult,
   type MetaObject,
+  type ServerContext,
   type StandardSchemaWithJSON,
 } from '@modelcontextprotocol/server';
 import type { z } from 'zod/v4';
@@ -16,8 +18,9 @@ type McpToolSuccessResult<TOutputSchema extends StandardSchemaWithJSON> = CallTo
   readonly isError?: false;
 };
 
-/** MCP-compatible result returned by kit tool handlers. `content` is always required. */
+/** Official SDK result returned by kit tool handlers, including modern multi-round input. */
 export type McpToolResult<TOutputSchema extends StandardSchemaWithJSON | undefined = undefined> =
+  | InputRequiredResult
   | McpToolErrorResult
   | (TOutputSchema extends StandardSchemaWithJSON
       ? McpToolSuccessResult<TOutputSchema>
@@ -37,9 +40,11 @@ export interface McpToolDefinition<
   readonly _meta?: MetaObject;
   readonly requiredScopes: readonly string[];
   readonly risk: McpToolRisk;
+  /** The third argument is the official SDK context for this invocation. */
   readonly handler: (
     input: z.output<TInputSchema>,
     context: McpRequestContext<TDependencies>,
+    sdkContext: ServerContext,
   ) => McpToolResult<TOutputSchema> | Promise<McpToolResult<TOutputSchema>>;
 }
 
@@ -85,6 +90,7 @@ export async function executeToolDefinition<
   tool: McpToolDefinition<TDependencies, TInputSchema, TOutputSchema>,
   input: z.output<TInputSchema>,
   context: McpRequestContext<TDependencies>,
+  sdkContext?: ServerContext,
 ): Promise<McpToolResult<TOutputSchema>> {
   const startedAt = Date.now();
   const base = {
@@ -105,7 +111,14 @@ export async function executeToolDefinition<
   });
   try {
     enforceRequiredScopes(context.principal, tool.requiredScopes);
-    const result = await tool.handler(input, context);
+    const result = sdkContext
+      ? await tool.handler(input, context, sdkContext)
+      : await (
+          tool.handler as (
+            input: z.output<TInputSchema>,
+            context: McpRequestContext<TDependencies>,
+          ) => McpToolResult<TOutputSchema> | Promise<McpToolResult<TOutputSchema>>
+        )(input, context);
     safeLog(() => {
       context.logger.log({
         event: 'tool.completed',
@@ -165,7 +178,7 @@ export async function createMcpServer<TDependencies>(
         annotations: riskToAnnotations(tool.risk),
         ...(tool._meta ? { _meta: tool._meta } : {}),
       },
-      async (input) => executeToolDefinition(tool, input, context),
+      async (input, sdkContext) => executeToolDefinition(tool, input, context, sdkContext),
     );
   }
 

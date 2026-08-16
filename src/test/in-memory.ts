@@ -8,10 +8,13 @@ import {
   type McpToolResult,
 } from '../core/definition.js';
 import { McpPublicError } from '../core/errors.js';
-import type { StandardSchemaWithJSON } from '@modelcontextprotocol/server';
+import type { ServerContext, StandardSchemaWithJSON } from '@modelcontextprotocol/server';
 import type { z } from 'zod/v4';
 
-/** Calls one definition directly while preserving Zod parsing, policy, logging, and sanitization. */
+/**
+ * Calls one definition directly while preserving Zod parsing, policy, logging, and sanitization.
+ * Pass an official SDK context as the fourth argument when the handler inspects its invocation context.
+ */
 export async function invokeTool<
   TDependencies,
   TInputSchema extends z.ZodType,
@@ -20,12 +23,13 @@ export async function invokeTool<
   tool: McpToolDefinition<TDependencies, TInputSchema, TOutputSchema>,
   input: unknown,
   context: McpRequestContext<TDependencies>,
+  sdkContext?: ServerContext,
 ): Promise<McpToolResult<TOutputSchema>> {
   const parsed = await tool.inputSchema.safeParseAsync(input);
   if (!parsed.success) {
     throw new McpPublicError('invalid_input', 'Invalid tool input', { cause: parsed.error });
   }
-  return executeToolDefinition(tool, parsed.data, context);
+  return executeToolDefinition(tool, parsed.data, context, sdkContext);
 }
 
 /** A connected official client/server pair for fast, protocol-independent definition tests. */
@@ -34,7 +38,7 @@ export interface InMemoryMcpClient {
   readonly close: () => Promise<void>;
 }
 
-/** Connects an official legacy client through the SDK's linked in-memory transports. */
+/** Connects an official client through the SDK's linked in-memory transports. */
 export async function connectInMemory<TDependencies>(
   definition: McpServerDefinition<TDependencies>,
   context: McpRequestContext<TDependencies>,

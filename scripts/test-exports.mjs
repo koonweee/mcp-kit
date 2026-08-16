@@ -13,7 +13,11 @@ try {
         name: 'mcp-kit-external-export-test',
         private: true,
         type: 'module',
-        dependencies: { '@koonweee/mcp-kit': fileDependency(tarball), zod: '4.4.3' },
+        dependencies: {
+          '@koonweee/mcp-kit': fileDependency(tarball),
+          '@modelcontextprotocol/server': '2.0.0',
+          zod: '4.4.3',
+        },
         devDependencies: {
           '@types/node': '24.13.3',
           typescript: '6.0.3',
@@ -58,6 +62,7 @@ import { defineServer, defineTool, type McpPrincipal } from '@koonweee/mcp-kit';
 import { createNodeMcpHandler, type NodeMcpHandler } from '@koonweee/mcp-kit/node';
 import { createAuth0Verifier, type Auth0VerifierOptions } from '@koonweee/mcp-kit/auth0';
 import { connectInMemory, createTestPrincipal, type InMemoryMcpClient } from '@koonweee/mcp-kit/test';
+import { inputRequired, type ServerContext } from '@modelcontextprotocol/server';
 import { z } from 'zod/v4';
 
 const principal: McpPrincipal = createTestPrincipal();
@@ -78,6 +83,26 @@ const typedTool = tool({
     structuredContent: { value: 'typed' },
   }),
 });
+const multiRoundTool = tool({
+  name: 'multi-round',
+  description: 'Packed SDK context and input-required fixture',
+  inputSchema: z.object({ outcome: z.enum(['success', 'error', 'input-required']) }),
+  outputSchema,
+  requiredScopes: [],
+  risk: { kind: 'read' },
+  handler: ({ outcome }, _context, sdkContext) => {
+    const officialContext: ServerContext = sdkContext;
+    void officialContext;
+    if (outcome === 'error') {
+      return { content: [{ type: 'text', text: 'error' }], isError: true };
+    }
+    if (outcome === 'input-required') return inputRequired({ requestState: 'round-1' });
+    return {
+      content: [{ type: 'text', text: 'typed' }],
+      structuredContent: { value: 'typed' },
+    };
+  },
+});
 tool({
   name: 'invalid-typed',
   description: 'Packed declaration rejection fixture',
@@ -91,13 +116,17 @@ tool({
     structuredContent: { value: 123 },
   }),
 });
-const definition = defineServer<Record<string, never>>()({ name: 'types', version: '1.0.0', tools: [typedTool] });
+const definition = defineServer<Record<string, never>>()({
+  name: 'types',
+  version: '1.0.0',
+  tools: [typedTool, multiRoundTool],
+});
 const handler: NodeMcpHandler = createNodeMcpHandler(definition, { dependencies: () => ({}) });
 const connection: Promise<InMemoryMcpClient> = connectInMemory(
   definition,
   { requestId: 'types', principal, logger: { log() {}, error() {} }, dependencies: {} },
 );
-void [tool, typedTool, verifier, handler, connection];
+void [tool, typedTool, multiRoundTool, verifier, handler, connection];
 `,
   );
   await writeFile(

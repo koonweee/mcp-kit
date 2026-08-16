@@ -46,6 +46,51 @@ The curried helpers preserve schema output inference and the shared dependency t
 
 Tool-level `_meta` is optional extension metadata forwarded to `McpServer.registerTool()` and advertised in `tools/list`. It can carry client-specific hints, including MCP Apps metadata, but it is not an authorization or risk-policy input. Treat it as client-visible, untrusted extension data: never put credentials, tokens, personal data, or other secrets in `_meta`.
 
+## Modern multi-round input
+
+Handlers receive the official SDK `ServerContext` as their third argument. They may return the SDK's `InputRequiredResult` alongside a normal tool result, including when the tool declares `outputSchema`. Existing handlers that use only the input or the kit request context remain compatible.
+
+Use the official SDK helpers directly; mcp-kit does not wrap or re-export them:
+
+```ts
+import { acceptedContent, inputRequired } from '@modelcontextprotocol/server';
+import { z } from 'zod/v4';
+
+const confirmationSchema = z.object({ confirmed: z.boolean() });
+
+const deploy = defineTool<Dependencies>()({
+  name: 'deploy',
+  description: 'Deploy one environment',
+  inputSchema: z.object({ environment: z.string() }),
+  outputSchema: z.object({ deployed: z.boolean() }),
+  requiredScopes: ['deploy:write'],
+  risk: { kind: 'mutating' },
+  handler({ environment }, _context, sdkContext) {
+    const confirmation = acceptedContent(
+      sdkContext.mcpReq.inputResponses,
+      'confirmation',
+      confirmationSchema,
+    );
+    if (!confirmation?.confirmed) {
+      return inputRequired({
+        inputRequests: {
+          confirmation: inputRequired.elicit({
+            message: `Deploy ${environment}?`,
+            requestedSchema: confirmationSchema,
+          }),
+        },
+      });
+    }
+    return {
+      content: [{ type: 'text', text: `Deployed ${environment}` }],
+      structuredContent: { deployed: true },
+    };
+  },
+});
+```
+
+Every input response came through the client and is untrusted. Always use `acceptedContent(responses, key, schema)` (or perform equivalent explicit validation) before making authorization, resource-access, or business decisions. Likewise, integrity-protect and verify `requestState` if it influences those decisions. Do not use the deprecated push-style `getClientCapabilities()`/`elicitInput()` flow for modern multi-round interaction.
+
 ## Policy, errors, and logging
 
 `requiredScopes` is authoritative. When a tool declares scopes, anonymous callers and principals missing any declared scope are denied before service code executes. A tool with an empty scope list may run anonymously when the host has no endpoint-wide authentication gate. Risk is independently authoritative server metadata:
@@ -82,5 +127,6 @@ await serveNode(notesServer, {
 - Owning files: `src/core/definition.ts`, `src/core/context.ts`, `src/core/policy.ts`, `src/core/errors.ts`, and `src/core/logging.ts` own this contract.
 - Keep Zod validation, required-scope enforcement, risk policy, sanitized errors, and safe logging ahead of service behavior.
 - Pass tool schemas and extension metadata through the official SDK instead of converting, validating, or interpreting them in core; `_meta` must never contain secrets or change authorization behavior.
+- Pass the official `ServerContext` and `InputRequiredResult` through unchanged. Do not add a parallel elicitation framework; validate untrusted responses with `acceptedContent(..., schema)`.
 - Verify definition changes with `pnpm vitest run test/core/definition.test.ts test/core/boundary.test.ts` and typecheck with `pnpm typecheck`.
 - Read [Auth0](auth0.md) next when the definition will be served publicly, or [Testing](testing.md) to test it without HTTP.

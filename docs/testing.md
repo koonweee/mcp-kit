@@ -25,9 +25,11 @@ const result = await invokeTool(
 
 Assert that invalid input and missing scopes prevent the service dependency from being called. For failure paths, assert public messages and allowlisted log fields rather than internal exception text.
 
+The three-argument form remains suitable for existing handlers that ignore the official invocation context. When a direct test needs that third handler argument, pass an actual SDK `ServerContext` as `invokeTool`'s fourth argument. Prefer capturing it through `connectInMemory` instead of constructing a broad mock.
+
 ## In-memory protocol tests
 
-`connectInMemory(definition, context)` connects an official MCP client to a fresh server through linked transports. Use it to verify initialization, tool discovery, annotations, SDK schema behavior, and tool results without HTTP. Always call the returned `close()`.
+`connectInMemory(definition, context)` connects an official MCP client to a fresh server through linked transports. Use it to verify initialization, tool discovery, annotations, SDK schema behavior, handler invocation context, and tool results without HTTP. Always call the returned `close()`.
 
 ## Authenticated HTTP tests
 

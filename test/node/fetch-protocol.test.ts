@@ -1,5 +1,15 @@
-import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
-import { createMcpHandler } from '@modelcontextprotocol/server';
+import {
+  Client,
+  StreamableHTTPClientTransport,
+  specTypeSchemas,
+  withInputRequired,
+} from '@modelcontextprotocol/client';
+import {
+  createMcpHandler,
+  inputRequired,
+  type InputRequiredResult,
+  type ServerContext,
+} from '@modelcontextprotocol/server';
 import { z } from 'zod/v4';
 import {
   createMcpServer,
@@ -56,6 +66,58 @@ describe('SDK v2 current and legacy fetch behavior', () => {
     expect(factoryCalls).toBeGreaterThanOrEqual(modern ? 3 : 4);
     expect(client.getProtocolEra()).toBe(modern ? 'modern' : 'legacy');
     expect(transport.sessionId).toBeUndefined();
+    await client.close();
+    await handler.close();
+  });
+
+  it('passes an official input-required result through a modern tool call', async () => {
+    let receivedSdkContext: ServerContext | undefined;
+    const requestedInput: InputRequiredResult = inputRequired({ requestState: 'round-1' });
+    const multiRoundDefinition = defineServer<Record<string, never>>()({
+      name: 'modern-input-test',
+      version: '1.0.0',
+      tools: [
+        defineTool<Record<string, never>>()({
+          name: 'request-input',
+          description: 'Request another input round',
+          inputSchema: z.object({}),
+          outputSchema: z.object({ done: z.boolean() }),
+          requiredScopes: [],
+          risk: { kind: 'read' },
+          handler(_input, _context, sdkContext) {
+            receivedSdkContext = sdkContext;
+            return requestedInput;
+          },
+        }),
+      ],
+    });
+    const handler = createMcpHandler(() =>
+      createMcpServer(
+        multiRoundDefinition,
+        createRequestContext({
+          requestId: 'request-modern-input',
+          logger: silentLogger,
+          dependencies: {},
+        }),
+      ),
+    );
+    const client = new Client(
+      { name: 'modern-input-client', version: '1.0.0' },
+      { versionNegotiation: { mode: { pin: '2026-07-28' } } },
+    );
+    const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+      fetch: (url, init) => handler.fetch(new Request(url, init)),
+    });
+    await client.connect(transport);
+
+    const result = await client.request(
+      { method: 'tools/call', params: { name: 'request-input', arguments: {} } },
+      withInputRequired(specTypeSchemas.CallToolResult),
+      { allowInputRequired: true },
+    );
+    expect(result).toMatchObject(requestedInput);
+    expect(receivedSdkContext?.mcpReq.method).toBe('tools/call');
+    expect(receivedSdkContext?.mcpReq.signal).toBeInstanceOf(AbortSignal);
     await client.close();
     await handler.close();
   });

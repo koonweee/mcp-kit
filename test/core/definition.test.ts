@@ -1,3 +1,8 @@
+import {
+  inputRequired,
+  type InputRequiredResult,
+  type ServerContext,
+} from '@modelcontextprotocol/server';
 import { expectTypeOf } from 'vitest';
 import { z } from 'zod/v4';
 import {
@@ -107,6 +112,75 @@ describe('portable definitions', () => {
     expect(await connected.client.callTool({ name: 'plain', arguments: {} })).toMatchObject({
       content: [{ type: 'text', text: 'plain' }],
     });
+    await connected.close();
+  });
+
+  it('passes the official SDK context and input-required results through unchanged', async () => {
+    let receivedSdkContext: ServerContext | undefined;
+    const requestedInput: InputRequiredResult = inputRequired({ requestState: 'round-1' });
+    const multiRoundTool = defineTool<Dependencies>()({
+      name: 'multi-round',
+      description: 'Exercise SDK-native multi-round input',
+      inputSchema: z.object({ outcome: z.enum(['success', 'error', 'input-required']) }),
+      outputSchema: echoOutputSchema,
+      requiredScopes: ['echo:read'],
+      risk: { kind: 'read' },
+      handler({ outcome }, context, sdkContext) {
+        expectTypeOf(sdkContext).toEqualTypeOf<ServerContext>();
+        receivedSdkContext = sdkContext;
+        if (outcome === 'error') {
+          return { content: [{ type: 'text', text: 'safe error' }], isError: true };
+        }
+        if (outcome === 'input-required') return requestedInput;
+        const text = `${context.dependencies.prefix}success`;
+        return { content: [{ type: 'text', text }], structuredContent: { text } };
+      },
+    });
+    const requestContext = createRequestContext({
+      requestId: 'request-multi-round',
+      principal: createTestPrincipal('user-multi-round', ['echo:read']),
+      logger: silentLogger,
+      dependencies: { prefix: '>' },
+    });
+    const connected = await connectInMemory(
+      defineServer<Dependencies>()({
+        name: 'multi-round-test',
+        version: '1.0.0',
+        tools: [multiRoundTool],
+      }),
+      requestContext,
+    );
+
+    expect(
+      await connected.client.callTool({
+        name: 'multi-round',
+        arguments: { outcome: 'success' },
+      }),
+    ).toMatchObject({
+      content: [{ type: 'text', text: '>success' }],
+      structuredContent: { text: '>success' },
+    });
+    expect(receivedSdkContext?.mcpReq.method).toBe('tools/call');
+    expect(receivedSdkContext?.mcpReq.signal).toBeInstanceOf(AbortSignal);
+
+    const sdkContext = receivedSdkContext;
+    expect(sdkContext).toBeDefined();
+    const errorResult = await invokeTool(
+      multiRoundTool,
+      { outcome: 'error' },
+      requestContext,
+      sdkContext,
+    );
+    expect(errorResult).toMatchObject({ isError: true, content: [{ text: 'safe error' }] });
+    const inputRequiredResult = await invokeTool(
+      multiRoundTool,
+      { outcome: 'input-required' },
+      requestContext,
+      sdkContext,
+    );
+    expect(inputRequiredResult).toBe(requestedInput);
+    expectTypeOf(inputRequiredResult).toEqualTypeOf<McpToolResult<typeof echoOutputSchema>>();
+    expect(receivedSdkContext).toBe(sdkContext);
     await connected.close();
   });
 
