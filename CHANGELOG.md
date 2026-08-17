@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 - 2026-08-17
+
+- Added the isolated `@koonweee/mcp-kit/apps` browser entrypoint, composing the official ext-apps
+  1.7.5 `App` and `PostMessageTransport` with handlers-before-connect lifecycle and typed
+  loading, ready, and safe error states.
+- Added official host theme, style, font, safe-area, resize, disconnect, and idempotent teardown
+  handling with no fixture or business data in the production/default path.
+- Added official AppBridge integration regressions plus packed ESM, CommonJS, browser-bundle, Node
+  24 container, registry, and declaration checks while preserving existing server resource and
+  scope behavior.
+
 ## 0.3.1 - 2026-08-17
 
 - Added optional, typed `requiredScopes` to first-class MCP App resources and enforce every

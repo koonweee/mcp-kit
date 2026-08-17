@@ -20,7 +20,7 @@
 - Cloudflare remains documented and compile-only: no runtime adapter, dependency, or public export.
 - Service-specific tools, API clients, credentials, deployment, and environment loading stay outside the kit.
 - Modern multi-round input stays SDK-native: pass `ServerContext` and `InputRequiredResult` through, and require consumers to validate untrusted responses with `acceptedContent(..., schema)`.
-- Public APIs are only `.`, `./node`, `./auth0`, and `./test`; validate them from the packed tarball.
+- Public APIs are only `.`, `./node`, `./auth0`, `./test`, and the browser-only `./apps`; validate them from the packed tarball.
 
 ## Change routing
 

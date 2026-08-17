@@ -1,4 +1,5 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { build } from 'esbuild';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -66,12 +67,14 @@ const surfaces = await Promise.all([
   import('@koonweee/mcp-kit/node'),
   import('@koonweee/mcp-kit/auth0'),
   import('@koonweee/mcp-kit/test'),
+  import('@koonweee/mcp-kit/apps'),
 ]);
 for (const [index, surface] of surfaces.entries()) {
   if (Object.keys(surface).length === 0) throw new Error('empty public subpath ' + index);
 }
 if (typeof surfaces[3].createTestJwtAuthority !== 'function') throw new Error('test helper missing');
-console.log('all four public subpaths imported from ${spec}');
+if (typeof surfaces[4].createMcpAppRuntime !== 'function') throw new Error('Apps runtime missing');
+console.log('all five public subpaths imported from ${spec}');
 `,
   );
   await writeFile(
@@ -82,6 +85,7 @@ const surfaces = [
   require('@koonweee/mcp-kit/node'),
   require('@koonweee/mcp-kit/auth0'),
   require('@koonweee/mcp-kit/test'),
+  require('@koonweee/mcp-kit/apps'),
 ];
 for (const [index, surface] of surfaces.entries()) {
   if (Object.keys(surface).length === 0) throw new Error('empty CommonJS public subpath ' + index);
@@ -90,7 +94,8 @@ void (async () => {
   const authority = await surfaces[3].createTestJwtAuthority();
   const token = await authority.sign({ scope: 'registry:read' });
   if (token.split('.').length !== 3) throw new Error('CommonJS registry JWT helper failed');
-  console.log('all four CommonJS public subpaths required from ${spec}');
+  if (typeof surfaces[4].createMcpAppRuntime !== 'function') throw new Error('CommonJS Apps runtime missing');
+  console.log('all five CommonJS public subpaths required from ${spec}');
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;
@@ -100,6 +105,20 @@ void (async () => {
   await run('npm', ['audit', 'signatures'], { cwd: workspace });
   await run(process.execPath, ['index.mjs'], { cwd: workspace });
   await run(process.execPath, ['index.cjs'], { cwd: workspace });
+  await writeFile(
+    join(workspace, 'browser-entry.js'),
+    `import { createMcpAppRuntime } from '@koonweee/mcp-kit/apps';\nglobalThis.__mcpKitBrowserRuntime = typeof createMcpAppRuntime;\n`,
+  );
+  await build({
+    absWorkingDir: workspace,
+    entryPoints: ['browser-entry.js'],
+    outfile: join(workspace, 'browser-bundle.cjs'),
+    bundle: true,
+    platform: 'browser',
+    format: 'cjs',
+    logLevel: 'silent',
+  });
+  await run(process.execPath, ['browser-bundle.cjs'], { cwd: workspace });
 } finally {
   await rm(workspace, { recursive: true, force: true });
 }

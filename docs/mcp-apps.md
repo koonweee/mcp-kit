@@ -9,9 +9,54 @@ defines the portable contract. OpenAI's
 [metadata reference](https://developers.openai.com/plugins/reference) add submission and optional
 ChatGPT compatibility requirements.
 
-The package owns server-side definitions and serialization only. A consuming service owns its HTML
-bundle, widget behavior, origin, DNS, TLS, ingress, and deployment. The kit does not host component
-assets, implement the iframe bridge, choose a customer domain, or verify a domain with a host.
+The package owns server-side definitions and serialization plus an optional browser lifecycle. A
+consuming service owns its HTML bundle, rendering and business-data interpretation, origin, DNS,
+TLS, ingress, and deployment. The kit does not host component assets, reimplement the iframe
+protocol, choose a customer domain, or verify a domain with a host.
+
+## Browser runtime
+
+Use the isolated `@koonweee/mcp-kit/apps` entrypoint inside the bundled App view. It composes the
+official ext-apps 1.7.5 `App` and `PostMessageTransport`; mcp-kit does not implement JSON-RPC or the
+postMessage protocol.
+
+```ts
+import { createMcpAppRuntime } from '@koonweee/mcp-kit/apps';
+
+const runtime = createMcpAppRuntime({
+  appInfo: { name: 'report-dashboard', version: '1.0.0' },
+  onStateChange(state) {
+    if (state.status === 'loading') renderLoading();
+    if (state.status === 'ready') renderReport(state.result.structuredContent);
+    if (state.status === 'error') renderError(state.error.message);
+  },
+});
+
+await runtime.connect();
+```
+
+Create the runtime after the document exists. Its initial state is exactly `{ status: 'loading' }`:
+there is no sample result, fixture, or service data. Complete or partial tool input returns the view
+to `loading`; the official tool-result notification produces `ready`; initialization, transport,
+cancellation, and teardown failures produce a safe `error` state. Consumers parse and validate
+`ready.result.structuredContent` for their own business schema.
+
+The runtime installs every handler before connecting. It applies the initial and changed host theme,
+CSS variables, fonts, and safe-area insets through the official style helpers and canonical safe-area
+padding pattern. It retains the official resize-observer cleanup, closes the transport on page hide
+or host teardown, removes its listener and timer, restores the styles it changed, and makes `close()`
+idempotent. Call `await runtime.close()` before replacing a view yourself.
+
+`runtime.app` exposes the common official host methods such as `callServerTool`, `sendLog`,
+`openLink`, and `requestTeardown`. The optional `transport` setting is an advanced structural seam;
+the default always constructs the official parent-window `PostMessageTransport`. Tests in this
+repository inject only explicit test transports and results through an official `AppBridge`; no test
+fixture is part of the production/default path.
+
+Migrating a hand-wired App view is mechanical: remove local App and transport construction, move
+tool/context/teardown callbacks into `createMcpAppRuntime`, render from its discriminated state, and
+replace ad hoc observer/listener cleanup with `runtime.close()`. Delete demo-result fallbacks rather
+than passing them into the new layer.
 
 ## Define and link an app
 
@@ -155,13 +200,15 @@ standard `ui.csp` values.
 ## Agent guidance
 
 - Owning files: `src/core/apps.ts` owns typed metadata, serialization, compatibility aliases, and
-  validation; `src/core/definition.ts` owns first-class server and tool integration.
+  validation; `src/core/definition.ts` owns first-class server and tool integration; `src/apps/`
+  owns the isolated browser lifecycle.
 - Preserve the stable `ui://`, `text/html;profile=mcp-app`, resource-content `_meta.ui`, and tool
   `_meta.ui.resourceUri` wire contract. Keep host-specific aliases opt-in.
 - Keep tool `content` and, when declared, `structuredContent` useful without rendered UI.
 - Keep App resource `requiredScopes` aligned with the service's authorization policy; enforcement
   must happen before HTML generation or dependency access.
 - Verify changes with `pnpm vitest run test/core/apps.test.ts test/core/definition.test.ts`, then run
-  `pnpm test:exports`, `pnpm test:consumer`, and the full `pnpm verify` gate.
+  `pnpm vitest run test/apps/runtime.test.ts`, `pnpm test:exports`, `pnpm test:consumer`, and the full
+  `pnpm verify` gate.
 - Read [Architecture](architecture.md) for the portability boundary and
   [Defining a server](server-definition.md) for shared tool policy.

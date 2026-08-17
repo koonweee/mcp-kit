@@ -28,7 +28,8 @@ unexpected service failures cannot cross the protocol boundary.
 MCP Apps resources and typed tool links use the standard `ui://`,
 `text/html;profile=mcp-app`, and `_meta.ui` wire shapes. See
 [MCP Apps and UI resources](docs/mcp-apps.md), including the explicit OpenAI submission validation
-profile, server-enforced resource `requiredScopes`, and opt-in legacy ChatGPT aliases.
+profile, server-enforced resource `requiredScopes`, the optional browser lifecycle, and opt-in legacy
+ChatGPT aliases.
 
 ```ts
 import { defineServer, defineTool } from '@koonweee/mcp-kit';
@@ -71,12 +72,13 @@ const { serveNode } = require('@koonweee/mcp-kit/node');
 - [Releasing and adopting](docs/releasing.md)
 
 The only public package paths are `@koonweee/mcp-kit`, `@koonweee/mcp-kit/node`,
-`@koonweee/mcp-kit/auth0`, and `@koonweee/mcp-kit/test`. Every path supports both `import` and
-`require`; do not import files under `dist`.
+`@koonweee/mcp-kit/auth0`, `@koonweee/mcp-kit/test`, and the browser-only
+`@koonweee/mcp-kit/apps`. Every path supports both `import` and `require`; do not import files under
+`dist`.
 
 ## Agent guidance
 
-- Owning files: `src/index.ts`, the four public subpath indexes, and `package.json` own the contract summarized here.
+- Owning files: `src/index.ts`, the public subpath indexes, and `package.json` own the contract summarized here.
 - Preserve the repository boundaries in [Architecture](docs/architecture.md); never move service tools, clients, secrets, or deployment into this package.
 - Verify README or public-contract changes with `pnpm docs:check`, `pnpm test:exports`, and `pnpm test:consumer`.
 - Read [Architecture](docs/architecture.md) next for dependency direction and deliberate exclusions.

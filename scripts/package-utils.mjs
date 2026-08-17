@@ -56,6 +56,7 @@ export async function installOffline(directory) {
       'install',
       '--offline',
       '--ignore-scripts',
+      '--config.auto-install-peers=false',
       '--frozen-lockfile=false',
       '--store-dir',
       await pnpmStoreDir(),

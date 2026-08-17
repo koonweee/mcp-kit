@@ -87,7 +87,8 @@ pnpm verify
 ```
 
 `test:exports` installs the packed tarball into a temporary project, typechecks both ESM and
-CommonJS consumers, and exercises `import` and `require` for every public subpath. `test:consumer`
+CommonJS consumers, exercises `import` and `require` for every public subpath, and bundles the Apps
+entrypoint for a browser with Node builtins forbidden. `test:consumer`
 compiles and runs the neutral ESM example plus an authenticated CommonJS client/server smoke against
 the tarball rather than workspace source. `test:container` builds the example Docker image from that
 tarball and requires all CommonJS paths inside Node 24. `pack:check` rejects unintended package
