@@ -43,6 +43,7 @@ const dashboard = defineAppResource<Dependencies>()({
       resourceDomains: ['https://static.example.com'],
     },
   },
+  requiredScopes: ['reports:read'],
   html: '<!doctype html><html lang="en"><body><div id="root"></div><script type="module">/* bundled MCP Apps UI */</script></body></html>',
 });
 
@@ -81,6 +82,18 @@ also be a request-local function that receives `McpRequestContext<TDependencies>
 
 Treat each resource URI as a cache key. Publish a new URI and update every linked tool when a
 breaking HTML, JavaScript, or CSS change would make a cached template incompatible.
+
+## Resource authorization
+
+Declare `requiredScopes` on an App resource when its HTML is not public. The kit checks every
+declared scope against the request-local validated principal before returning static HTML or
+invoking an HTML provider. A missing scope becomes a sanitized MCP protocol error with the public
+message `Insufficient scope`; the provider and its dependencies are not called.
+
+Omitting `requiredScopes` or setting it to `[]` preserves public-at-the-MCP-layer behavior when the
+runtime has no endpoint-wide authentication gate. Resource and tool policies are independent, so
+declare the intended scopes on both the App resource and every linked tool. Scope requirements are
+server policy and are never inferred from client-visible `_meta`.
 
 ## Domains and OpenAI submission
 
@@ -146,6 +159,8 @@ standard `ui.csp` values.
 - Preserve the stable `ui://`, `text/html;profile=mcp-app`, resource-content `_meta.ui`, and tool
   `_meta.ui.resourceUri` wire contract. Keep host-specific aliases opt-in.
 - Keep tool `content` and, when declared, `structuredContent` useful without rendered UI.
+- Keep App resource `requiredScopes` aligned with the service's authorization policy; enforcement
+  must happen before HTML generation or dependency access.
 - Verify changes with `pnpm vitest run test/core/apps.test.ts test/core/definition.test.ts`, then run
   `pnpm test:exports`, `pnpm test:consumer`, and the full `pnpm verify` gate.
 - Read [Architecture](architecture.md) for the portability boundary and

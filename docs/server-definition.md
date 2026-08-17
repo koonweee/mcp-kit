@@ -140,13 +140,18 @@ await serveNode(notesServer, {
 });
 ```
 
-`extend(server, context)` is the deliberate low-level seam for official SDK resources or prompts. Keep extensions portable and request-local; it is not permission to depend on Node or service-global mutable state.
+`extend(server, context)` is the deliberate low-level seam for official SDK resources or prompts.
+Keep extensions portable and request-local; it is not permission to depend on Node or
+service-global mutable state. First-class MCP App resources enforce their own typed
+`requiredScopes` automatically. Low-level extension callbacks have no declarative policy field, so
+call the public `enforceRequiredScopes(context.principal, scopes)` helper inside the protected
+callback before accessing service dependencies when they are not public.
 
 Every callback registered through that seam must use `mcpExtensionErrorBoundary`. Direct official
 SDK registration otherwise has no kit-owned public-error boundary:
 
 ```ts
-import { mcpExtensionErrorBoundary } from '@koonweee/mcp-kit';
+import { enforceRequiredScopes, mcpExtensionErrorBoundary } from '@koonweee/mcp-kit';
 import { ResourceTemplate } from '@modelcontextprotocol/server';
 import { z } from 'zod/v4';
 
@@ -161,17 +166,20 @@ export const reportsServer = defineServer<Dependencies>()({
       'report',
       new ResourceTemplate('report://{reportId}', { list: undefined }),
       { mimeType: 'application/json' },
-      mcpExtensionErrorBoundary.resourceTemplate(async (uri, { reportId }) => ({
-        contents: [
-          {
-            uri: uri.href,
-            mimeType: 'application/json',
-            text: JSON.stringify(
-              (await context.dependencies.reports.find(String(reportId))) ?? null,
-            ),
-          },
-        ],
-      })),
+      mcpExtensionErrorBoundary.resourceTemplate(async (uri, { reportId }) => {
+        enforceRequiredScopes(context.principal, ['reports:read']);
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              mimeType: 'application/json',
+              text: JSON.stringify(
+                (await context.dependencies.reports.find(String(reportId))) ?? null,
+              ),
+            },
+          ],
+        };
+      }),
     );
     server.registerPrompt(
       'review-report',
@@ -204,7 +212,9 @@ attached and the boundary does not log callback arguments, results, or failures.
 ## Agent guidance
 
 - Owning files: `src/core/definition.ts`, `src/core/context.ts`, `src/core/extensions.ts`, `src/core/policy.ts`, `src/core/errors.ts`, and `src/core/logging.ts` own this contract.
-- Keep Zod validation, required-scope enforcement, risk policy, sanitized errors, and safe logging ahead of service behavior.
+- Keep Zod validation, required-scope enforcement, risk policy, sanitized errors, and safe logging
+  ahead of service behavior. First-class Apps enforce resource scopes; low-level `extend` callbacks
+  must call `enforceRequiredScopes` explicitly when protected.
 - Pass tool schemas and extension metadata through the official SDK instead of converting, validating, or interpreting them in core; `_meta` must never contain secrets or change authorization behavior.
 - Pass the official `ServerContext` and `InputRequiredResult` through unchanged. Do not add a parallel elicitation framework; validate untrusted responses with `acceptedContent(..., schema)`.
 - Verify definition changes with `pnpm vitest run test/core/definition.test.ts test/core/boundary.test.ts` and typecheck with `pnpm typecheck`.

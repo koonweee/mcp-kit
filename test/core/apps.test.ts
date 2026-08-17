@@ -1,4 +1,5 @@
-import { expectTypeOf } from 'vitest';
+import { INTERNAL_ERROR } from '@modelcontextprotocol/server';
+import { expectTypeOf, vi } from 'vitest';
 import { z } from 'zod/v4';
 import {
   MCP_APP_RESOURCE_MIME_TYPE,
@@ -10,7 +11,7 @@ import {
   validateMcpApps,
   type McpRequestContext,
 } from '../../src/index.js';
-import { connectInMemory } from '../../src/test/index.js';
+import { connectInMemory, createTestPrincipal } from '../../src/test/index.js';
 
 interface Dependencies {
   readonly label: string;
@@ -138,6 +139,92 @@ describe('MCP Apps definitions', () => {
       });
     } finally {
       await connected.close();
+    }
+  });
+
+  it('enforces resource scopes before request-local HTML providers run', async () => {
+    const html = vi.fn((context: McpRequestContext<Dependencies>) => {
+      return `<html>${context.requestId}:${context.principal?.subject}:${context.dependencies.label}</html>`;
+    });
+    const scoped = defineAppResource<Dependencies>()({
+      name: 'scoped-dashboard',
+      uri: 'ui://scoped/dashboard-v1.html',
+      requiredScopes: ['apps:read'],
+      html,
+    });
+    const explicitlyUnscoped = defineAppResource<Dependencies>()({
+      name: 'unscoped-dashboard',
+      uri: 'ui://unscoped/dashboard-v1.html',
+      requiredScopes: [],
+      html: '<html>public</html>',
+    });
+    expectTypeOf(scoped.requiredScopes).toEqualTypeOf<readonly string[] | undefined>();
+    const definition = defineServer<Dependencies>()({
+      name: 'scoped-apps',
+      version: '1.0.0',
+      apps: { resources: [scoped, explicitlyUnscoped] },
+      tools: [],
+    });
+
+    for (const [requestId, subject, label] of [
+      ['apps-authorized-a', 'user-a', 'alpha'],
+      ['apps-authorized-b', 'user-b', 'beta'],
+    ] as const) {
+      const connected = await connectInMemory(
+        definition,
+        createRequestContext({
+          requestId,
+          principal: createTestPrincipal(subject, ['apps:read']),
+          logger: silentLogger,
+          dependencies: { label },
+        }),
+      );
+      try {
+        await expect(connected.client.readResource({ uri: scoped.uri })).resolves.toMatchObject({
+          contents: [{ text: `<html>${requestId}:${subject}:${label}</html>` }],
+        });
+      } finally {
+        await connected.close();
+      }
+    }
+    expect(html).toHaveBeenCalledTimes(2);
+
+    const denied = await connectInMemory(
+      definition,
+      createRequestContext({
+        requestId: 'apps-denied',
+        principal: createTestPrincipal('limited-user', ['other:read']),
+        logger: silentLogger,
+        dependencies: { label: 'must-not-render' },
+      }),
+    );
+    try {
+      const request = denied.client.readResource({ uri: scoped.uri });
+      await expect(request).rejects.toMatchObject({
+        code: INTERNAL_ERROR,
+        message: 'Insufficient scope',
+        data: undefined,
+      });
+      await expect(request).rejects.not.toHaveProperty('cause');
+      expect(html).toHaveBeenCalledTimes(2);
+    } finally {
+      await denied.close();
+    }
+
+    const anonymous = await connectInMemory(
+      definition,
+      createRequestContext({
+        requestId: 'apps-unscoped',
+        logger: silentLogger,
+        dependencies: { label: 'anonymous' },
+      }),
+    );
+    try {
+      await expect(
+        anonymous.client.readResource({ uri: explicitlyUnscoped.uri }),
+      ).resolves.toMatchObject({ contents: [{ text: '<html>public</html>' }] });
+    } finally {
+      await anonymous.close();
     }
   });
 

@@ -2,6 +2,7 @@ import { type McpServer, type MetaObject } from '@modelcontextprotocol/server';
 import type { McpRequestContext } from './context.js';
 import type { McpServerDefinition } from './definition.js';
 import { mcpExtensionErrorBoundary } from './extensions.js';
+import { enforceRequiredScopes } from './policy.js';
 
 /** Stable MCP Apps HTML resource MIME type. */
 export const MCP_APP_RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app' as const;
@@ -43,6 +44,8 @@ export interface McpAppResourceDefinition<TDependencies> {
   readonly title?: string;
   readonly description?: string;
   readonly ui?: McpUiResourceMetadata;
+  /** Server-authoritative scopes checked before the HTML provider runs. */
+  readonly requiredScopes?: readonly string[];
   /** Additional resource-content metadata. Typed `ui` fields remain authoritative. */
   readonly _meta?: MetaObject;
   readonly html: string | ((context: McpRequestContext<TDependencies>) => string | Promise<string>);
@@ -409,6 +412,7 @@ export function registerMcpAppResources<TDependencies>(
         ...(metadata ? { _meta: metadata } : {}),
       },
       mcpExtensionErrorBoundary.resource(async () => {
+        enforceRequiredScopes(context.principal, resource.requiredScopes ?? []);
         const html =
           typeof resource.html === 'function' ? await resource.html(context) : resource.html;
         return {

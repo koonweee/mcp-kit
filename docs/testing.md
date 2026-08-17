@@ -53,6 +53,11 @@ resource-content `_meta.ui`, and the ordinary text/structured fallback returned 
 Run `validateMcpApps(definition, { profile: 'openai-submission' })` separately when the consumer will
 be submitted as an OpenAI plugin.
 
+For a scoped App resource, test one authorized read with a request-local principal and dependencies,
+then a missing-scope read that rejects with the sanitized `Insufficient scope` protocol error.
+Assert the HTML provider and its dependencies are not called on denial. Also retain an omitted or
+empty `requiredScopes` case when the resource is intentionally public at the MCP layer.
+
 ## Authenticated HTTP tests
 
 `createTestJwtAuthority()` creates an ephemeral RS256 issuer with an in-memory JWKS fetch function. Private keys stay closure-local and are not exported from production package paths. Pair its values with `createAuth0Verifier`, then pass `createAuth0BearerGate` and `principalFromAuthInfo` to `serveNode`.
