@@ -144,6 +144,23 @@ try {
   if (changed.content?.[0]?.text !== 'allowed-value') throw new Error('allowed write did not reach backend');
   await allowed.close();
 
+  const resourceLimited = await makeClient('example:write');
+  try {
+    await resourceLimited.readResource({ uri: 'ui://status/card-v1.html' });
+    throw new Error('scoped MCP Apps resource unexpectedly succeeded');
+  } catch (error) {
+    if (
+      error?.code !== -32603 ||
+      error?.message !== 'Insufficient scope' ||
+      error?.data !== undefined ||
+      error?.cause !== undefined
+    ) {
+      throw error;
+    }
+  } finally {
+    await resourceLimited.close();
+  }
+
   const limited = await makeClient('example:read');
   const secret = 'SENSITIVE_DENIED_VALUE_7f34';
   const denied = await limited.callTool({ name: 'write-status', arguments: { value: secret } });
@@ -161,7 +178,7 @@ try {
     join(workspace, 'smoke.cjs'),
     `
 const { Client, StreamableHTTPClientTransport } = require('@modelcontextprotocol/client');
-const { defineServer, defineTool, mcpExtensionErrorBoundary } = require('@koonweee/mcp-kit');
+const { defineAppResource, defineServer, defineTool, mcpExtensionErrorBoundary } = require('@koonweee/mcp-kit');
 const { serveNode } = require('@koonweee/mcp-kit/node');
 const {
   createAuth0BearerGate,
@@ -195,9 +212,16 @@ void (async () => {
       };
     },
   });
+  const appResource = defineAppResource()({
+    name: 'commonjs-app',
+    uri: 'ui://commonjs/app-v1.html',
+    requiredScopes: ['example:read'],
+    html: '<html>commonjs-app-ready</html>',
+  });
   const definition = defineServer()({
     name: 'commonjs-consumer',
     version: '1.0.0',
+    apps: { resources: [appResource] },
     tools: [read],
     extend(server) {
       server.registerResource(
@@ -240,6 +264,10 @@ void (async () => {
     const result = await client.callTool({ name: 'commonjs-read', arguments: {} });
     if (result.isError || result.structuredContent?.value !== 'commonjs-ready') {
       throw new Error('CommonJS authenticated tool call failed');
+    }
+    const appResult = await client.readResource({ uri: appResource.uri });
+    if (appResult.contents[0]?.text !== '<html>commonjs-app-ready</html>') {
+      throw new Error('CommonJS scoped MCP Apps resource failed');
     }
     try {
       await client.readResource({ uri: 'test://private-commonjs-resource' });

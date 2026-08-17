@@ -37,6 +37,7 @@ const statusApp = defineAppResource<{ readonly backend: FakeBackend }>()({
     domain: 'https://widgets.example.com',
     prefersBorder: true,
   },
+  requiredScopes: ['example:read'],
   html: '<!doctype html><html lang="en"><body><main>Status results are also available through the tool text fallback.</main></body></html>',
 });
 

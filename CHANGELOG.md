@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.1 - 2026-08-17
+
+- Added optional, typed `requiredScopes` to first-class MCP App resources and enforce every
+  declared scope before invoking the request-local HTML provider.
+- Missing-scope resource reads now fail through the sanitized protocol boundary without rendering
+  or calling service code; omitted and empty scope lists remain backward compatible.
+- Extended in-memory, packed ESM/CommonJS declaration and consumer, example, documentation, and
+  Node 24 release coverage for authorized and denied App resource reads.
+
 ## 0.3.0 - 2026-08-17
 
 - Added first-class, typed MCP Apps resource definitions and tool linkage using the stable `ui://`,

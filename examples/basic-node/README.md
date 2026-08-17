@@ -6,7 +6,9 @@ This neutral consumer keeps its fake backend, environment loading, and tool defi
 path-aware protected-resource metadata. Its read tool also demonstrates a neutral first-class MCP
 Apps resource, standard tool linkage, and a text/structured fallback. The placeholder
 `https://widgets.example.com` origin must be replaced by a consuming plugin's own canonical HTTPS
-UI origin before submission. The Dockerfile consumes the same pinned tarball.
+UI origin before submission. Both the read tool and its HTML resource require `example:read`; the
+resource provider is never evaluated for an under-scoped principal. The Dockerfile consumes the
+same pinned tarball.
 
 ## Agent guidance
 

@@ -28,7 +28,7 @@ unexpected service failures cannot cross the protocol boundary.
 MCP Apps resources and typed tool links use the standard `ui://`,
 `text/html;profile=mcp-app`, and `_meta.ui` wire shapes. See
 [MCP Apps and UI resources](docs/mcp-apps.md), including the explicit OpenAI submission validation
-profile and opt-in legacy ChatGPT aliases.
+profile, server-enforced resource `requiredScopes`, and opt-in legacy ChatGPT aliases.
 
 ```ts
 import { defineServer, defineTool } from '@koonweee/mcp-kit';

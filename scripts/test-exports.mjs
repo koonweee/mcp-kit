@@ -119,6 +119,7 @@ const appResource: McpAppResourceDefinition<Record<string, never>> = defineAppRe
   name: 'typed-app',
   uri: 'ui://typed/app-v1.html',
   ui: { domain: 'https://widgets.example.com', prefersBorder: true },
+  requiredScopes: ['apps:read'],
   html: '<!doctype html><html><body>typed</body></html>',
 });
 const typedTool = tool({
@@ -233,6 +234,7 @@ const appResource = defineAppResource<Record<string, never>>()({
   name: 'commonjs-app',
   uri: 'ui://commonjs/app-v1.html',
   ui: { domain: 'https://widgets.example.com' },
+  requiredScopes: ['apps:read'],
   html: '<!doctype html><html><body>commonjs</body></html>',
 });
 const tool = defineTool<Record<string, never>>()({

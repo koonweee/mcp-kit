@@ -51,7 +51,18 @@ public initialized capability accessor on legacy connections. Service code can b
 input-required support without casting the incomplete SDK envelope declaration or probing private
 server state. Raw client identity and capability objects are not copied into the service context.
 
-Before a tool handler runs, Zod validates its input and core checks every declared required scope. Risk metadata maps to conservative MCP annotations, but those annotations are only client hints and never authorize a call. Tool failures are sanitized automatically. Low-level callbacks registered through `extend` use the typed `mcpExtensionErrorBoundary` adapters; unexpected resource, prompt, listing, completion, and other callback failures become a fixed protocol internal error with no cause or data. Official SDK protocol errors and explicitly approved `McpPublicError` messages retain their public semantics. Operational records contain an event, opaque request ID, tool name, and optional duration, outcome, or safe error code; they never contain principal identity, authentication claims, arguments, results, tokens, secrets, or internal causes. Extension boundaries deliberately do not log callback arguments, results, or failures. The request ID is the privacy-safe correlation seam and must not be derived from any caller identity or claim.
+Before a tool handler or first-class MCP App HTML provider runs, core checks every declared required
+scope against the request-local principal. Zod also validates tool input before tool execution. Risk
+metadata maps to conservative MCP annotations, but those annotations are only client hints and
+never authorize a call. Tool failures are sanitized automatically. Low-level callbacks registered
+through `extend` use the typed `mcpExtensionErrorBoundary` adapters; unexpected resource, prompt,
+listing, completion, and other callback failures become a fixed protocol internal error with no
+cause or data. Official SDK protocol errors and explicitly approved `McpPublicError` messages retain
+their public semantics. Operational records contain an event, opaque request ID, tool name, and
+optional duration, outcome, or safe error code; they never contain principal identity,
+authentication claims, arguments, results, tokens, secrets, or internal causes. Extension
+boundaries deliberately do not log callback arguments, results, or failures. The request ID is the
+privacy-safe correlation seam and must not be derived from any caller identity or claim.
 
 ## Deliberate exclusions
 
