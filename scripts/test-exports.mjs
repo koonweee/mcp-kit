@@ -74,7 +74,7 @@ console.log('all four CommonJS public subpaths required from the packed artifact
   await writeFile(
     join(workspace, 'index.ts'),
     `
-import { defineServer, defineTool, type McpPrincipal } from '@koonweee/mcp-kit';
+import { defineServer, defineTool, type McpClientProtocolEra, type McpLogRecord, type McpPrincipal } from '@koonweee/mcp-kit';
 import { createNodeMcpHandler, type NodeMcpHandler } from '@koonweee/mcp-kit/node';
 import { createAuth0Verifier, type Auth0VerifierOptions } from '@koonweee/mcp-kit/auth0';
 import { connectInMemory, createTestPrincipal, type InMemoryMcpClient } from '@koonweee/mcp-kit/test';
@@ -82,6 +82,9 @@ import { inputRequired, type ServerContext } from '@modelcontextprotocol/server'
 import { z } from 'zod/v4';
 
 const principal: McpPrincipal = createTestPrincipal();
+const logRecord: McpLogRecord = { event: 'tool.started', requestId: 'opaque', toolName: 'typed' };
+// @ts-expect-error Principal identity is deliberately absent from packed log record declarations.
+logRecord.subject;
 const authOptions = {} as Auth0VerifierOptions;
 const verifier = createAuth0Verifier(authOptions);
 const tool = defineTool<Record<string, never>>();
@@ -94,10 +97,15 @@ const typedTool = tool({
   _meta: { 'example.dev/category': 'types' },
   requiredScopes: [],
   risk: { kind: 'read' },
-  handler: () => ({
-    content: [{ type: 'text', text: 'typed' }],
-    structuredContent: { value: 'typed' },
-  }),
+  handler: (_input, context) => {
+    const era: McpClientProtocolEra = context.client.protocolEra;
+    const supportsForm: boolean = context.client.inputRequired.formElicitation;
+    void [era, supportsForm];
+    return {
+      content: [{ type: 'text', text: 'typed' }],
+      structuredContent: { value: 'typed' },
+    };
+  },
 });
 const multiRoundTool = tool({
   name: 'multi-round',
@@ -142,13 +150,13 @@ const connection: Promise<InMemoryMcpClient> = connectInMemory(
   definition,
   { requestId: 'types', principal, logger: { log() {}, error() {} }, dependencies: {} },
 );
-void [tool, typedTool, multiRoundTool, verifier, handler, connection];
+void [tool, typedTool, multiRoundTool, verifier, handler, connection, logRecord];
 `,
   );
   await writeFile(
     join(workspace, 'index.cts'),
     `
-import { defineServer, defineTool, type McpPrincipal } from '@koonweee/mcp-kit';
+import { defineServer, defineTool, type McpClientProtocolEra, type McpLogRecord, type McpPrincipal } from '@koonweee/mcp-kit';
 import { createNodeMcpHandler, type NodeMcpHandler } from '@koonweee/mcp-kit/node';
 import { createAuth0Verifier, type Auth0VerifierOptions } from '@koonweee/mcp-kit/auth0';
 import { createTestJwtAuthority, createTestPrincipal } from '@koonweee/mcp-kit/test';
@@ -156,6 +164,9 @@ import { inputRequired, type ServerContext } from '@modelcontextprotocol/server'
 import { z } from 'zod/v4';
 
 const principal: McpPrincipal = createTestPrincipal();
+const logRecord: McpLogRecord = { event: 'tool.started', requestId: 'opaque', toolName: 'typed' };
+// @ts-expect-error Principal identity is deliberately absent from packed log record declarations.
+logRecord.subject;
 const verifier = createAuth0Verifier({} as Auth0VerifierOptions);
 const outputSchema = z.object({ value: z.string() });
 const tool = defineTool<Record<string, never>>()({
@@ -166,9 +177,11 @@ const tool = defineTool<Record<string, never>>()({
   _meta: { 'example.dev/module': 'commonjs' },
   requiredScopes: [],
   risk: { kind: 'read' },
-  handler: ({ requireInput }, _context, sdkContext) => {
+  handler: ({ requireInput }, context, sdkContext) => {
     const officialContext: ServerContext = sdkContext;
-    void officialContext;
+    const era: McpClientProtocolEra = context.client.protocolEra;
+    const supportsForm: boolean = context.client.inputRequired.formElicitation;
+    void [officialContext, era, supportsForm];
     if (requireInput) return inputRequired({ requestState: 'commonjs-round-1' });
     return {
       content: [{ type: 'text', text: 'typed' }],
@@ -183,7 +196,7 @@ const definition = defineServer<Record<string, never>>()({
 });
 const handler: NodeMcpHandler = createNodeMcpHandler(definition, { dependencies: () => ({}) });
 const authority = createTestJwtAuthority();
-void [principal, verifier, handler, authority];
+void [principal, verifier, handler, authority, logRecord];
 `,
   );
   await writeFile(

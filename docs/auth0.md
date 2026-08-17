@@ -79,7 +79,7 @@ After automated verification, perform this optional smoke against the real tenan
 3. Fetch the path-aware protected-resource metadata URL. Confirm `resource`, `authorization_servers`, and `scopes_supported` exactly match the deployment.
 4. Request `/mcp` without a token. Confirm `401` and a `WWW-Authenticate` challenge pointing to that metadata URL.
 5. Connect an MCP client or Inspector through Auth0. Initialize, list tools, call an allowed tool, then use a user or grant without one tool scope and confirm denial before the backend call.
-6. Review logs and responses to confirm they contain no access token, claims, credentials, arguments, results, or internal validation cause.
+6. Review logs and responses to confirm they contain no access token, subject, client ID, scope or other claim, credentials, arguments, results, or internal validation cause. Operational logs correlate only through an opaque request ID that is independent of caller identity.
 
 Do not paste a real token into documentation, chat, test fixtures, or command history. This procedure validates integration only; durable tenant and deployment changes belong to their owning repositories.
 

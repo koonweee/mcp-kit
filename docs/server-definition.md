@@ -65,13 +65,19 @@ const deploy = defineTool<Dependencies>()({
   outputSchema: z.object({ deployed: z.boolean() }),
   requiredScopes: ['deploy:write'],
   risk: { kind: 'mutating' },
-  handler({ environment }, _context, sdkContext) {
+  handler({ environment }, context, sdkContext) {
     const confirmation = acceptedContent(
       sdkContext.mcpReq.inputResponses,
       'confirmation',
       confirmationSchema,
     );
     if (!confirmation?.confirmed) {
+      if (!context.client.inputRequired.formElicitation) {
+        return {
+          content: [{ type: 'text', text: `Preview ${environment}; confirm in a capable client.` }],
+          structuredContent: { deployed: false },
+        };
+      }
       return inputRequired({
         inputRequests: {
           confirmation: inputRequired.elicit({
@@ -91,6 +97,15 @@ const deploy = defineTool<Dependencies>()({
 
 Every input response came through the client and is untrusted. Always use `acceptedContent(responses, key, schema)` (or perform equivalent explicit validation) before making authorization, resource-access, or business decisions. Likewise, integrity-protect and verify `requestState` if it influences those decisions. Do not use the deprecated push-style `getClientCapabilities()`/`elicitInput()` flow for modern multi-round interaction.
 
+The kit-owned second handler argument exposes a narrow, typed support view at
+`context.client`. Check `context.client.inputRequired.formElicitation` before returning a form
+elicitation and provide a useful ordinary result when it is false. URL-mode tools similarly check
+`urlElicitation`; `context.client.protocolEra` is `modern`, `legacy`, or `unknown` when diagnostics
+need the transport era. Modern support is derived from the validated per-request SDK envelope.
+Legacy support uses the initialized SDK capability view and reflects the default legacy shim;
+stateless legacy requests without initialization capability state conservatively report false. The
+third handler argument remains the unmodified official `ServerContext`.
+
 ## Policy, errors, and logging
 
 `requiredScopes` is authoritative. When a tool declares scopes, anonymous callers and principals missing any declared scope are denied before service code executes. A tool with an empty scope list may run anonymously when the host has no endpoint-wide authentication gate. Risk is independently authoritative server metadata:
@@ -101,11 +116,11 @@ Every input response came through the client and is untrusted. Always use `accep
 
 `openWorld` defaults to false. MCP annotations derived from these values help clients present a tool, but never grant access or replace backend authorization.
 
-Throw `McpPublicError` only when a stable message is safe for the caller. Unknown failures become `The tool could not be completed`; their cause is available to the logger seam but is never returned. Logger implementations receive allowlisted operational records only and must not serialize handler input, output, tokens, secrets, or causes. Use `safeConsoleLogger` or `silentLogger` unless a service supplies an equally restrictive logger.
+Throw `McpPublicError` only when a stable message is safe for the caller. Unknown failures become `The tool could not be completed`; their cause is available to the logger seam but is never returned. Logger implementations receive allowlisted operational records containing only the event, opaque request ID, tool name, and optional duration, outcome, or safe error code. Principal subjects, client IDs, scopes, other authentication claims, handler input/output, tokens, secrets, and causes are never record fields. Generate request IDs independently of identity data and use them as the only per-request correlation key. `safeConsoleLogger` applies this allowlist again at runtime and ignores internal causes; use it or `silentLogger` unless a service supplies an equally restrictive logger.
 
 ## Request-local dependencies
 
-The Node adapter calls `dependencies(context)` for each request. Load process configuration in the consumer entrypoint, then construct a fresh dependency view there. Do not place service credentials in a definition, principal claims, result, or log record.
+The Node adapter calls `dependencies(context)` for each request. Load process configuration in the consumer entrypoint, then construct a fresh dependency view there. Do not place service credentials in a definition, principal claims, result, log record, or request ID.
 
 ```ts
 import { serveNode } from '@koonweee/mcp-kit/node';

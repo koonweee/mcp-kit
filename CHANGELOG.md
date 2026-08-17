@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.2 - 2026-08-16
+
+- Privacy-safe operational log records no longer include principal subjects or other authentication
+  claims; opaque request IDs remain available for per-request correlation.
+- `safeConsoleLogger` now projects an explicit runtime allowlist before serialization, preventing
+  untyped extra fields and internal error causes from reaching the console.
+- Authenticated CommonJS consumers now use a packaged jose v6 runtime instead of native dynamic
+  import, including Jest on Node 24 without `--experimental-vm-modules` or `NODE_OPTIONS`.
+- Tool handlers receive a typed, kit-owned `context.client` signal for modern and legacy form/URL
+  input-required support while retaining the official `ServerContext` as the third argument.
+
 ## 0.2.1 - 2026-08-16
 
 - Dual ESM and CommonJS package exports, declarations, packed-consumer checks, and Node 24

@@ -3,8 +3,10 @@ export type {
   McpRequestContext,
   McpRequestContextOptions,
   McpRequestInfo,
+  McpToolRequestContext,
 } from './core/context.js';
 export { createRequestContext } from './core/context.js';
+export type { McpClientProtocolEra, McpClientSupport } from './core/client-support.js';
 export { McpPublicError, McpScopeError } from './core/errors.js';
 export type { McpLogRecord, McpLogger } from './core/logging.js';
 export { safeConsoleLogger, silentLogger } from './core/logging.js';

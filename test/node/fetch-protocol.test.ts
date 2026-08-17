@@ -17,6 +17,7 @@ import {
   defineServer,
   defineTool,
   silentLogger,
+  type McpClientSupport,
 } from '../../src/index.js';
 
 const definition = defineServer<{ readonly id: number }>()({
@@ -121,4 +122,60 @@ describe('SDK v2 current and legacy fetch behavior', () => {
     await client.close();
     await handler.close();
   });
+
+  it.each([
+    ['form-capable', { elicitation: { form: {} } }, true, false],
+    ['url-only', { elicitation: { url: {} } }, false, true],
+    ['incapable', {}, false, false],
+  ] as const)(
+    'reports a modern form-elicitation client as %s',
+    async (_label, capabilities, formElicitation, urlElicitation) => {
+      let support: McpClientSupport | undefined;
+      const supportDefinition = defineServer<Record<string, never>>()({
+        name: 'modern-support-test',
+        version: '1.0.0',
+        tools: [
+          defineTool<Record<string, never>>()({
+            name: 'inspect-support',
+            description: 'Inspect modern input-required support',
+            inputSchema: z.object({}),
+            requiredScopes: [],
+            risk: { kind: 'read' },
+            handler(_input, context) {
+              support = context.client;
+              return { content: [{ type: 'text', text: 'inspected' }] };
+            },
+          }),
+        ],
+      });
+      const handler = createMcpHandler(() =>
+        createMcpServer(
+          supportDefinition,
+          createRequestContext({
+            requestId: 'request-modern-support',
+            logger: silentLogger,
+            dependencies: {},
+          }),
+        ),
+      );
+      const client = new Client(
+        { name: 'modern-support-client', version: '1.0.0' },
+        { versionNegotiation: { mode: { pin: '2026-07-28' } }, capabilities },
+      );
+      const transport = new StreamableHTTPClientTransport(new URL('http://test.local/mcp'), {
+        fetch: (url, init) => handler.fetch(new Request(url, init)),
+      });
+      try {
+        await client.connect(transport);
+        await client.callTool({ name: 'inspect-support', arguments: {} });
+        expect(support).toEqual({
+          protocolEra: 'modern',
+          inputRequired: { formElicitation, urlElicitation },
+        });
+      } finally {
+        await client.close();
+        await handler.close();
+      }
+    },
+  );
 });

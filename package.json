@@ -1,6 +1,6 @@
 {
   "name": "@koonweee/mcp-kit",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Personal TypeScript toolkit for defining repeatable, stateless MCP servers with Node and Auth0.",
   "type": "module",
   "license": "MIT",
@@ -98,6 +98,7 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/node": "24.13.3",
+    "esbuild": "0.28.2",
     "eslint": "10.8.1",
     "prettier": "3.9.6",
     "tsx": "4.23.12",

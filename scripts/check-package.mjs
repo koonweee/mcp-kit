@@ -24,7 +24,10 @@ for (const required of [
   'package/dist/cjs/index.d.ts',
   'package/dist/cjs/package.json',
   'package/dist/esm/shared/jose-loader.cjs',
+  'package/dist/esm/shared/jose-runtime.cjs',
   'package/dist/cjs/shared/jose-loader.cjs',
+  'package/dist/cjs/shared/jose-runtime.cjs',
+  'package/dist/JOSE-LICENSE.md',
   'package/LICENSE',
   'package/README.md',
 ]) {

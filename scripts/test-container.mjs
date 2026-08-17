@@ -17,6 +17,14 @@ try {
       join(workspace, 'commonjs-smoke.cjs'),
     ),
     copyFile(
+      resolve(root, 'examples/basic-node/commonjs-jest.test.cjs'),
+      join(workspace, 'commonjs-jest.test.cjs'),
+    ),
+    copyFile(
+      resolve(root, 'examples/basic-node/jest.config.cjs'),
+      join(workspace, 'jest.config.cjs'),
+    ),
+    copyFile(
       resolve(root, 'examples/basic-node/pnpm-workspace.yaml'),
       join(workspace, 'pnpm-workspace.yaml'),
     ),

@@ -1,8 +1,13 @@
-/** Safe operational fields emitted by the kit. Tool arguments and results are never included. */
+/**
+ * Privacy-safe operational fields emitted by the kit.
+ *
+ * `requestId` is the only correlation field. Consumers must keep it opaque and must not derive it
+ * from a principal, token, or claim. Tool arguments, results, identities, and authentication claims
+ * are never included.
+ */
 export interface McpLogRecord {
   readonly event: 'tool.started' | 'tool.completed' | 'tool.denied' | 'tool.failed';
   readonly requestId: string;
-  readonly subject?: string;
   readonly toolName: string;
   readonly durationMs?: number;
   readonly outcome?: 'success' | 'denied' | 'error';
@@ -21,12 +26,26 @@ export const silentLogger: McpLogger = Object.freeze<McpLogger>({
   error() {},
 });
 
-/** Safe console logger that intentionally ignores internal causes and logs only allowlisted fields. */
+function allowlistedRecord(record: McpLogRecord): McpLogRecord {
+  return {
+    event: record.event,
+    requestId: record.requestId,
+    toolName: record.toolName,
+    ...(record.durationMs !== undefined ? { durationMs: record.durationMs } : {}),
+    ...(record.outcome !== undefined ? { outcome: record.outcome } : {}),
+    ...(record.errorCode !== undefined ? { errorCode: record.errorCode } : {}),
+  };
+}
+
+/**
+ * Safe console logger that ignores internal causes and applies a runtime field allowlist before
+ * serialization. This remains safe when untyped JavaScript passes an object with extra fields.
+ */
 export const safeConsoleLogger: McpLogger = Object.freeze<McpLogger>({
   log(record: McpLogRecord) {
-    console.info(JSON.stringify(record));
+    console.info(JSON.stringify(allowlistedRecord(record)));
   },
   error(record: McpLogRecord) {
-    console.error(JSON.stringify(record));
+    console.error(JSON.stringify(allowlistedRecord(record)));
   },
 });

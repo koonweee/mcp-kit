@@ -6,6 +6,15 @@ Test at the narrowest seam that proves the behavior, then use the packed-package
 
 Use `createTestPrincipal`, `createRequestContext`, and `invokeTool` to test one tool with Zod parsing, scope policy, safe error conversion, and logging but without a transport.
 
+When testing a custom logger, use sentinel principal subjects and claims and assert that none appear
+in any started, completed, denied, or failed record. Correlate records through an opaque request ID;
+never derive that ID from the test principal or a real identity-provider value.
+
+The packed Node 24 container runs an authenticated CommonJS Jest fixture with no `NODE_OPTIONS` or
+experimental VM-module flag. Preserve that check when changing Auth0, JWT helpers, package exports,
+or the jose runtime bridge; requiring every consuming Jest repository to enable VM modules is not a
+supported compatibility strategy.
+
 ```ts
 import { createRequestContext, silentLogger } from '@koonweee/mcp-kit';
 import { createTestPrincipal, invokeTool } from '@koonweee/mcp-kit/test';
@@ -29,7 +38,7 @@ The three-argument form remains suitable for existing handlers that ignore the o
 
 ## In-memory protocol tests
 
-`connectInMemory(definition, context)` connects an official MCP client to a fresh server through linked transports. Use it to verify initialization, tool discovery, annotations, SDK schema behavior, handler invocation context, and tool results without HTTP. Always call the returned `close()`.
+`connectInMemory(definition, context, clientOptions?)` connects an official MCP client to a fresh server through linked transports. Pass official `ClientOptions.capabilities` to test legacy client-support branches. Use a real HTTP handler and a client pinned to `2026-07-28` for modern envelope behavior. Cover form-capable, URL-only, and incapable clients and assert the matching `context.client.inputRequired` booleans. Always call the returned `close()`.
 
 ## Authenticated HTTP tests
 

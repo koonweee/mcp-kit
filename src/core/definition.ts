@@ -8,6 +8,8 @@ import {
 } from '@modelcontextprotocol/server';
 import type { z } from 'zod/v4';
 import type { McpRequestContext } from './context.js';
+import type { McpToolRequestContext } from './context.js';
+import { resolveMcpClientSupport, type McpClientSupport } from './client-support.js';
 import { toPublicError } from './errors.js';
 import { enforceRequiredScopes, riskToAnnotations, type McpToolRisk } from './policy.js';
 
@@ -43,7 +45,7 @@ export interface McpToolDefinition<
   /** The third argument is the official SDK context for this invocation. */
   readonly handler: (
     input: z.output<TInputSchema>,
-    context: McpRequestContext<TDependencies>,
+    context: McpToolRequestContext<TDependencies>,
     sdkContext: ServerContext,
   ) => McpToolResult<TOutputSchema> | Promise<McpToolResult<TOutputSchema>>;
 }
@@ -91,11 +93,11 @@ export async function executeToolDefinition<
   input: z.output<TInputSchema>,
   context: McpRequestContext<TDependencies>,
   sdkContext?: ServerContext,
+  clientSupport?: McpClientSupport,
 ): Promise<McpToolResult<TOutputSchema>> {
   const startedAt = Date.now();
   const base = {
     requestId: context.requestId,
-    ...(context.principal ? { subject: context.principal.subject } : {}),
     toolName: tool.name,
   };
 
@@ -106,19 +108,28 @@ export async function executeToolDefinition<
       // Observability must never change tool behavior or expose logger failures through the SDK.
     }
   };
+  const toolContext: McpToolRequestContext<TDependencies> = Object.freeze({
+    ...context,
+    client:
+      clientSupport ??
+      resolveMcpClientSupport({
+        ...(sdkContext ? { sdkContext } : {}),
+        ...(context.request?.protocolEra ? { adapterEra: context.request.protocolEra } : {}),
+      }),
+  });
   safeLog(() => {
     context.logger.log({ event: 'tool.started', ...base });
   });
   try {
     enforceRequiredScopes(context.principal, tool.requiredScopes);
     const result = sdkContext
-      ? await tool.handler(input, context, sdkContext)
+      ? await tool.handler(input, toolContext, sdkContext)
       : await (
           tool.handler as (
             input: z.output<TInputSchema>,
-            context: McpRequestContext<TDependencies>,
+            context: McpToolRequestContext<TDependencies>,
           ) => McpToolResult<TOutputSchema> | Promise<McpToolResult<TOutputSchema>>
-        )(input, context);
+        )(input, toolContext);
     safeLog(() => {
       context.logger.log({
         event: 'tool.completed',
@@ -178,7 +189,22 @@ export async function createMcpServer<TDependencies>(
         annotations: riskToAnnotations(tool.risk),
         ...(tool._meta ? { _meta: tool._meta } : {}),
       },
-      async (input, sdkContext) => executeToolDefinition(tool, input, context, sdkContext),
+      async (input, sdkContext) => {
+        const legacyCapabilities = server.server.getClientCapabilities();
+        const negotiatedProtocolVersion = server.server.getNegotiatedProtocolVersion();
+        return executeToolDefinition(
+          tool,
+          input,
+          context,
+          sdkContext,
+          resolveMcpClientSupport({
+            sdkContext,
+            ...(context.request?.protocolEra ? { adapterEra: context.request.protocolEra } : {}),
+            ...(legacyCapabilities ? { legacyCapabilities } : {}),
+            ...(negotiatedProtocolVersion ? { negotiatedProtocolVersion } : {}),
+          }),
+        );
+      },
     );
   }
 

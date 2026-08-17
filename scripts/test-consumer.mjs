@@ -153,10 +153,18 @@ void (async () => {
     outputSchema: z.object({ value: z.string() }),
     requiredScopes: ['example:read'],
     risk: { kind: 'read' },
-    handler: () => ({
-      content: [{ type: 'text', text: 'commonjs-ready' }],
-      structuredContent: { value: 'commonjs-ready' },
-    }),
+    handler: (_input, context) => {
+      if (context.client.protocolEra !== 'legacy') {
+        throw new Error('CommonJS consumer client era mismatch');
+      }
+      if (context.client.inputRequired.formElicitation) {
+        throw new Error('CommonJS consumer unexpectedly reported form input support');
+      }
+      return {
+        content: [{ type: 'text', text: 'commonjs-ready' }],
+        structuredContent: { value: 'commonjs-ready' },
+      };
+    },
   });
   const definition = defineServer()({
     name: 'commonjs-consumer',

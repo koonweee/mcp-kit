@@ -15,6 +15,9 @@ pnpm add @koonweee/mcp-kit zod
 
 Define tools with `defineTool` and `defineServer`, then pass the definition to `serveNode`. See [Defining a server](docs/server-definition.md) for the complete minimal example and [Auth0](docs/auth0.md) for protecting a public endpoint.
 
+Tool handlers receive typed `context.client.inputRequired` support booleans for safe ordinary
+fallbacks when a modern or legacy client cannot fulfil an elicitation.
+
 ```ts
 import { defineServer, defineTool } from '@koonweee/mcp-kit';
 import { serveNode } from '@koonweee/mcp-kit/node';

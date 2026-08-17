@@ -31,9 +31,10 @@ The supported public paths are:
 No internal source path is a compatibility surface.
 
 Each supported path has conditional ESM and CommonJS exports with matching declarations. The two
-formats implement the same API and policy behavior. The small CommonJS runtime bridge loads
-ESM-only `jose` v6 through native `import()` on first Auth0 verification or test-JWT operation;
-the resulting module and JWKS resolver are reused, while tokens remain uncached.
+formats implement the same API and policy behavior. The build transforms the allowlisted jose v6
+APIs used by Auth0 verification and test JWTs into a packaged CommonJS runtime, preserving jose's
+MIT notice. CommonJS consumers therefore do not need dynamic-import wrappers, Jest VM module flags,
+or `NODE_OPTIONS`. The resulting module and JWKS resolver are reused, while tokens remain uncached.
 
 ## Request lifecycle
 
@@ -41,7 +42,13 @@ The Node adapter applies host and origin checks before routing. `/healthz` is pu
 
 For every MCP HTTP request, the SDK v2 handler creates a fresh MCP server. The adapter also creates a new principal view, request ID, logger selection, and dependency object. Nothing is resumed or stored between requests. The official handler serves the modern `2026-07-28` protocol and, by default, the supported 2025-era stateless flow; it does not create sessions for either era.
 
-Before a tool handler runs, Zod validates its input and core checks every declared required scope. Risk metadata maps to conservative MCP annotations, but those annotations are only client hints and never authorize a call. Public failures are sanitized; operational logging excludes arguments, results, tokens, secrets, and internal causes.
+Before invoking a tool, core derives a narrow `context.client` support view from official SDK
+runtime surfaces: the public per-request envelope and meta-key constants on modern requests, or the
+public initialized capability accessor on legacy connections. Service code can branch on form/URL
+input-required support without casting the incomplete SDK envelope declaration or probing private
+server state. Raw client identity and capability objects are not copied into the service context.
+
+Before a tool handler runs, Zod validates its input and core checks every declared required scope. Risk metadata maps to conservative MCP annotations, but those annotations are only client hints and never authorize a call. Public failures are sanitized. Operational records contain an event, opaque request ID, tool name, and optional duration, outcome, or safe error code; they never contain principal identity, authentication claims, arguments, results, tokens, secrets, or internal causes. The request ID is the privacy-safe correlation seam and must not be derived from any caller identity or claim.
 
 ## Deliberate exclusions
 

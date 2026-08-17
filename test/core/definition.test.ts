@@ -14,6 +14,8 @@ import {
   silentLogger,
   type McpLogRecord,
   type McpLogger,
+  type McpClientSupport,
+  type McpToolRequestContext,
   type McpToolResult,
 } from '../../src/index.js';
 import { connectInMemory, createTestPrincipal, invokeTool } from '../../src/test/index.js';
@@ -184,6 +186,57 @@ describe('portable definitions', () => {
     await connected.close();
   });
 
+  it('exposes typed form-input support for legacy clients', async () => {
+    const inspect = async (clientOptions: Parameters<typeof connectInMemory>[2]) => {
+      let support: McpClientSupport | undefined;
+      const supportTool = defineTool<Dependencies>()({
+        name: 'client-support',
+        description: 'Inspect the kit-owned client support signal',
+        inputSchema: z.object({}),
+        requiredScopes: [],
+        risk: { kind: 'read' },
+        handler(_input, context, sdkContext) {
+          expectTypeOf(context).toEqualTypeOf<McpToolRequestContext<Dependencies>>();
+          expectTypeOf(sdkContext).toEqualTypeOf<ServerContext>();
+          support = context.client;
+          return { content: [{ type: 'text', text: 'inspected' }] };
+        },
+      });
+      const connected = await connectInMemory(
+        defineServer<Dependencies>()({
+          name: 'client-support-test',
+          version: '1.0.0',
+          tools: [supportTool],
+        }),
+        createRequestContext({
+          requestId: 'request-client-support',
+          logger: silentLogger,
+          dependencies: { prefix: '' },
+        }),
+        clientOptions,
+      );
+      try {
+        await connected.client.callTool({ name: 'client-support', arguments: {} });
+        return support;
+      } finally {
+        await connected.close();
+      }
+    };
+
+    await expect(inspect({ capabilities: { elicitation: {} } })).resolves.toEqual({
+      protocolEra: 'legacy',
+      inputRequired: { formElicitation: true, urlElicitation: false },
+    });
+    await expect(inspect({ capabilities: { elicitation: { url: {} } } })).resolves.toEqual({
+      protocolEra: 'legacy',
+      inputRequired: { formElicitation: false, urlElicitation: true },
+    });
+    await expect(inspect({ capabilities: {} })).resolves.toEqual({
+      protocolEra: 'legacy',
+      inputRequired: { formElicitation: false, urlElicitation: false },
+    });
+  });
+
   it('denies missing scopes before the service handler runs', async () => {
     let called = false;
     const protectedTool = defineTool<Dependencies>()({
@@ -242,7 +295,7 @@ describe('portable definitions', () => {
     await connected.close();
   });
 
-  it('sanitizes internal failures and emits only allowlisted operational fields', async () => {
+  it('sanitizes internal failures and never emits principal identity or claims', async () => {
     const records: McpLogRecord[] = [];
     const causes: unknown[] = [];
     const logger: McpLogger = {
@@ -265,16 +318,63 @@ describe('portable definitions', () => {
       { value: 'secret input' },
       createRequestContext({
         requestId: 'request-4',
-        principal: createTestPrincipal('user-4', ['echo:read']),
+        principal: {
+          subject: 'secret-auth0-subject',
+          clientId: 'secret-client-id',
+          scopes: new Set(['echo:read']),
+          claims: {
+            email: 'secret@example.test',
+            permissions: ['secret:permission'],
+          },
+        },
         logger,
         dependencies: { prefix: 'secret prefix' },
       }),
     );
     expect(result).toMatchObject({ isError: true, content: [{ text: 'Safe failure' }] });
+    await invokeTool(
+      echoTool,
+      { value: 'ok' },
+      createRequestContext({
+        requestId: 'request-4-success',
+        principal: {
+          subject: 'secret-success-subject',
+          clientId: 'secret-success-client',
+          scopes: new Set(['echo:read']),
+          claims: { email: 'secret-success@example.test' },
+        },
+        logger,
+        dependencies: { prefix: '' },
+      }),
+    );
+    await invokeTool(
+      echoTool,
+      { value: 'denied' },
+      createRequestContext({
+        requestId: 'request-4-denied',
+        principal: {
+          subject: 'secret-denied-subject',
+          clientId: 'secret-denied-client',
+          scopes: new Set(),
+          claims: { email: 'secret-denied@example.test' },
+        },
+        logger,
+        dependencies: { prefix: '' },
+      }),
+    );
     expect(JSON.stringify(records)).not.toContain('secret');
     expect(causes).toHaveLength(1);
+    expect(records.map(({ event }) => event)).toEqual([
+      'tool.started',
+      'tool.failed',
+      'tool.started',
+      'tool.completed',
+      'tool.started',
+      'tool.denied',
+    ]);
+    expect(records.every((record) => !('subject' in record) && !('claims' in record))).toBe(true);
     expect(Object.keys(records.at(-1) ?? {}).sort()).toEqual(
-      ['durationMs', 'errorCode', 'event', 'outcome', 'requestId', 'subject', 'toolName'].sort(),
+      ['durationMs', 'errorCode', 'event', 'outcome', 'requestId', 'toolName'].sort(),
     );
   });
 

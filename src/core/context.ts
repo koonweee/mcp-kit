@@ -1,4 +1,5 @@
 import type { McpLogger } from './logging.js';
+import type { McpClientSupport } from './client-support.js';
 
 /** An authenticated identity and its validated OAuth scopes. */
 export interface McpPrincipal {
@@ -23,6 +24,11 @@ export interface McpRequestContext<TDependencies> {
   readonly logger: McpLogger;
   readonly dependencies: TDependencies;
   readonly request?: McpRequestInfo;
+}
+
+/** Request context passed to tool handlers after per-request client support is resolved. */
+export interface McpToolRequestContext<TDependencies> extends McpRequestContext<TDependencies> {
+  readonly client: McpClientSupport;
 }
 
 /** Inputs used to construct one isolated request context. */

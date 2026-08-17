@@ -1,4 +1,4 @@
-import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
+import { Client, InMemoryTransport, type ClientOptions } from '@modelcontextprotocol/client';
 import type { McpRequestContext } from '../core/context.js';
 import {
   createMcpServer,
@@ -42,10 +42,11 @@ export interface InMemoryMcpClient {
 export async function connectInMemory<TDependencies>(
   definition: McpServerDefinition<TDependencies>,
   context: McpRequestContext<TDependencies>,
+  clientOptions?: ClientOptions,
 ): Promise<InMemoryMcpClient> {
   const server = await createMcpServer(definition, context);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  const client = new Client({ name: 'mcp-kit-test', version: '1.0.0' });
+  const client = new Client({ name: 'mcp-kit-test', version: '1.0.0' }, clientOptions);
   await server.connect(serverTransport);
   await client.connect(clientTransport);
   return {
