@@ -29,7 +29,8 @@ MCP Apps resources and typed tool links use the standard `ui://`,
 `text/html;profile=mcp-app`, and `_meta.ui` wire shapes. See
 [MCP Apps and UI resources](docs/mcp-apps.md), including the explicit OpenAI submission validation
 profile, server-enforced resource `requiredScopes`, the optional browser lifecycle, and opt-in legacy
-ChatGPT aliases.
+ChatGPT aliases. The browser runtime also exposes the official `updateModelContext` request through
+its typed `runtime.app` surface so interactive selections can inform a future model turn.
 
 ```ts
 import { defineServer, defineTool } from '@koonweee/mcp-kit';

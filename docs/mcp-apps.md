@@ -47,11 +47,18 @@ padding pattern. It retains the official resize-observer cleanup, closes the tra
 or host teardown, removes its listener and timer, restores the styles it changed, and makes `close()`
 idempotent. Call `await runtime.close()` before replacing a view yourself.
 
-`runtime.app` exposes the common official host methods such as `callServerTool`, `sendLog`,
-`openLink`, and `requestTeardown`. The optional `transport` setting is an advanced structural seam;
-the default always constructs the official parent-window `PostMessageTransport`. Tests in this
-repository inject only explicit test transports and results through an official `AppBridge`; no test
-fixture is part of the production/default path.
+`runtime.app` exposes a typed subset of official host methods: `callServerTool`, `sendLog`,
+`openLink`, `updateModelContext`, and `requestTeardown`. `updateModelContext` accepts the official
+`content` blocks and/or `structuredContent` object, delegates directly to the official `App`, and
+resolves when the host acknowledges the request. Each update replaces the view's previous model
+context; it does not itself trigger a follow-up model turn. Hosts may reject unsupported modalities
+or the entire capability, so consumer Apps should handle a rejected promise without replacing live
+tool-result state with fixture data.
+
+The optional `transport` setting is an advanced structural seam; the default always constructs the
+official parent-window `PostMessageTransport`. Tests in this repository inject only explicit test
+transports and results through an official `AppBridge`; no test fixture is part of the
+production/default path.
 
 Migrating a hand-wired App view is mechanical: remove local App and transport construction, move
 tool/context/teardown callbacks into `createMcpAppRuntime`, render from its discriminated state, and

@@ -1,5 +1,7 @@
 import type {
   CallToolResult,
+  ContentBlock,
+  EmptyResult,
   Implementation,
   RequestOptions,
   Transport,
@@ -44,6 +46,10 @@ export class App {
     options?: RequestOptions,
   ): Promise<CallToolResult>;
   sendLog(params: { level: string; data?: unknown }): Promise<void>;
+  updateModelContext(
+    params: { content?: ContentBlock[]; structuredContent?: Record<string, unknown> },
+    options?: RequestOptions,
+  ): Promise<EmptyResult>;
   openLink(params: { url: string }, options?: RequestOptions): Promise<{ isError?: boolean }>;
   requestTeardown(params?: Record<string, unknown>): Promise<void>;
 }

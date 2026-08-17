@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1 - 2026-08-17
+
+- Exposed the official ext-apps `App.updateModelContext` request through the typed
+  `McpAppClient` browser runtime surface without reimplementing its protocol behavior.
+- Added official AppBridge, packed ESM/CommonJS declaration, browser-bundle, and registry coverage
+  for text and structured model-context updates while preserving lifecycle and no-fixture behavior.
+
 ## 0.4.0 - 2026-08-17
 
 - Added the isolated `@koonweee/mcp-kit/apps` browser entrypoint, composing the official ext-apps

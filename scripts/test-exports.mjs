@@ -196,9 +196,13 @@ const connection: Promise<InMemoryMcpClient> = connectInMemory(
 void [tool, typedTool, multiRoundTool, appResource, appMimeType, verifier, handler, connection, logRecord, resourceCallback, resourceTemplateCallback, promptCallback, template];
 const appState = {} as McpAppRuntimeState;
 const appRuntime = createMcpAppRuntime({ appInfo: { name: 'typed-view', version: '1.0.0' } });
+const updateContext = appRuntime.app.updateModelContext({
+  content: [{ type: 'text', text: 'typed browser context' }],
+  structuredContent: { selected: 'typed' },
+});
 // @ts-expect-error Production Apps options deliberately reject fixture data.
 createMcpAppRuntime({ appInfo: { name: 'invalid-view', version: '1.0.0' }, fixture: { value: 'demo' } });
-void [appRuntime, appState];
+void [appRuntime, appState, updateContext];
 `,
   );
   await writeFile(
@@ -283,9 +287,13 @@ const authority = createTestJwtAuthority();
 void [principal, verifier, handler, authority, appResource, appMimeType, logRecord, resourceCallback, resourceTemplateCallback, promptCallback, template];
 const appState = {} as McpAppRuntimeState;
 const appRuntime = createMcpAppRuntime({ appInfo: { name: 'typed-commonjs-view', version: '1.0.0' } });
+const updateContext = appRuntime.app.updateModelContext({
+  content: [{ type: 'text', text: 'typed CommonJS browser context' }],
+  structuredContent: { selected: 'commonjs' },
+});
 // @ts-expect-error Production Apps options deliberately reject fixture data.
 createMcpAppRuntime({ appInfo: { name: 'invalid-commonjs-view', version: '1.0.0' }, fixture: { value: 'demo' } });
-void [appRuntime, appState];
+void [appRuntime, appState, updateContext];
 `,
   );
   await writeFile(
@@ -316,7 +324,7 @@ void [appRuntime, appState];
   await run(process.execPath, ['index.cjs'], { cwd: workspace });
   await writeFile(
     join(workspace, 'browser-entry.js'),
-    `import { createMcpAppRuntime } from '@koonweee/mcp-kit/apps';\nglobalThis.__mcpKitBrowserRuntime = typeof createMcpAppRuntime;\n`,
+    `import { createMcpAppRuntime } from '@koonweee/mcp-kit/apps';\nglobalThis.__mcpKitBrowserRuntime = typeof createMcpAppRuntime;\nglobalThis.__mcpKitUpdateModelContext = (runtime) => typeof runtime.app.updateModelContext;\n`,
   );
   await build({
     absWorkingDir: workspace,

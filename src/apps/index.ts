@@ -7,6 +7,8 @@ import {
 } from '@modelcontextprotocol/ext-apps/app-with-deps';
 import type {
   CallToolResult,
+  ContentBlock,
+  EmptyResult,
   Implementation,
   RequestOptions,
   Transport,
@@ -18,6 +20,12 @@ export interface McpAppToolInput {
   readonly arguments?: Record<string, unknown>;
 }
 export type McpAppToolResult = CallToolResult;
+
+/** Context contributed by an App for the host to include in a future model turn. */
+export interface McpAppModelContext {
+  readonly content?: ContentBlock[];
+  readonly structuredContent?: Record<string, unknown>;
+}
 
 export interface McpAppCapabilities {
   readonly experimental?: Record<string, object>;
@@ -51,6 +59,8 @@ export interface McpAppClient {
     params: { readonly url: string },
     options?: RequestOptions,
   ): Promise<{ readonly isError?: boolean }>;
+  /** Typed passthrough to the official ext-apps App.updateModelContext request. */
+  updateModelContext(params: McpAppModelContext, options?: RequestOptions): Promise<EmptyResult>;
   requestTeardown(params?: Record<string, unknown>): Promise<void>;
 }
 

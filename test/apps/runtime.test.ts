@@ -76,6 +76,23 @@ describe('MCP Apps browser runtime', () => {
     await fixture.teardown();
   });
 
+  it('passes model-context updates through the official App and AppBridge', async () => {
+    const fixture = createMcpAppTestHost({
+      appInfo: { name: 'model-context-test', version: '1.0.0' },
+    });
+
+    await fixture.connect();
+    const context = {
+      content: [{ type: 'text' as const, text: 'Selected the cash-flow audit view.' }],
+      structuredContent: { selectedView: 'cash-flow-audit' },
+    };
+
+    await expect(fixture.runtime.app.updateModelContext(context)).resolves.toEqual({});
+    expect(fixture.modelContextUpdates).toEqual([context]);
+
+    await fixture.teardown();
+  });
+
   it('reports an unexpected peer close as a transport error and cleans browser resources', async () => {
     const fixture = createMcpAppTestHost({
       appInfo: { name: 'peer-close-test', version: '1.0.0' },

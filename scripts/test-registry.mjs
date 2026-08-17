@@ -107,7 +107,7 @@ void (async () => {
   await run(process.execPath, ['index.cjs'], { cwd: workspace });
   await writeFile(
     join(workspace, 'browser-entry.js'),
-    `import { createMcpAppRuntime } from '@koonweee/mcp-kit/apps';\nglobalThis.__mcpKitBrowserRuntime = typeof createMcpAppRuntime;\n`,
+    `import { createMcpAppRuntime } from '@koonweee/mcp-kit/apps';\nglobalThis.__mcpKitBrowserRuntime = typeof createMcpAppRuntime;\nglobalThis.__mcpKitUpdateModelContext = (runtime) => typeof runtime.app.updateModelContext;\n`,
   );
   await build({
     absWorkingDir: workspace,

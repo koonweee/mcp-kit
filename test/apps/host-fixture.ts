@@ -1,6 +1,7 @@
 import { AppBridge, type McpUiHostContext } from '@modelcontextprotocol/ext-apps/app-bridge';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type {
+  McpAppModelContext,
   McpAppRuntimeOptions,
   McpAppToolInput,
   McpAppToolResult,
@@ -188,9 +189,14 @@ export function createMcpAppTestHost(
   const bridge = new AppBridge(
     null,
     { name: 'mcp-kit-test-host', version: '1.0.0' },
-    {},
+    { updateModelContext: { text: {}, structuredContent: {} } },
     hostOptions.hostContext ? { hostContext: hostOptions.hostContext } : undefined,
   );
+  const modelContextUpdates: McpAppModelContext[] = [];
+  bridge.onupdatemodelcontext = (params) => {
+    modelContextUpdates.push(params);
+    return Promise.resolve({});
+  };
 
   return {
     runtime,
@@ -207,6 +213,7 @@ export function createMcpAppTestHost(
     sendToolResult(result: McpAppToolResult) {
       return bridge.sendToolResult(result);
     },
+    modelContextUpdates,
     emitTransportError(error: Error) {
       appTransport.onerror?.(error);
     },
