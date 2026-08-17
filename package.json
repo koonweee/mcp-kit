@@ -1,6 +1,6 @@
 {
   "name": "@koonweee/mcp-kit",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Personal TypeScript toolkit for defining portable MCP servers and Apps with Node and Auth0.",
   "type": "module",
   "license": "MIT",
@@ -66,6 +66,20 @@
         "types": "./dist/cjs/test/index.d.ts",
         "default": "./dist/cjs/test/index.js"
       }
+    },
+    "./apps": {
+      "browser": {
+        "types": "./dist/esm/apps/index.d.ts",
+        "default": "./dist/esm/apps/index.js"
+      },
+      "import": {
+        "types": "./dist/esm/apps/index.d.ts",
+        "default": "./dist/esm/apps/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/apps/index.d.ts",
+        "default": "./dist/cjs/apps/index.js"
+      }
     }
   },
   "scripts": {
@@ -89,14 +103,16 @@
     "prepack": "pnpm build"
   },
   "dependencies": {
-    "@modelcontextprotocol/node": "2.0.0",
     "@modelcontextprotocol/client": "2.0.0",
+    "@modelcontextprotocol/ext-apps": "1.7.5",
+    "@modelcontextprotocol/node": "2.0.0",
     "@modelcontextprotocol/server": "2.0.0",
     "jose": "6.2.9",
     "zod": "4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@modelcontextprotocol/sdk": "1.30.0",
     "@types/node": "24.13.3",
     "esbuild": "0.28.2",
     "eslint": "10.8.1",

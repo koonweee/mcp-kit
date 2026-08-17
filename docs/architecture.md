@@ -20,6 +20,8 @@ service definition and dependencies
           |       |
        Node     Auth0
        adapter  resource-server support
+
+browser MCP Apps runtime --> official ext-apps App + PostMessageTransport
 ```
 
 `src/core/` may depend on Web-standard values and the official MCP server package, but not Node APIs, environment readers, Auth0, Cloudflare, or service code. Runtime and authentication adapters depend inward on core. Consumers inject request-local dependencies rather than core reading configuration.
@@ -29,7 +31,8 @@ The supported public paths are:
 - `@koonweee/mcp-kit` for definitions, context, policy, logging, and public errors;
 - `@koonweee/mcp-kit/node` for stateless Node serving;
 - `@koonweee/mcp-kit/auth0` for JWT verification, bearer gating, and discovery; and
-- `@koonweee/mcp-kit/test` for principals, in-memory protocol tests, and ephemeral JWT fixtures.
+- `@koonweee/mcp-kit/test` for principals, in-memory protocol tests, and ephemeral JWT fixtures; and
+- `@koonweee/mcp-kit/apps` for the optional browser-safe MCP Apps view lifecycle.
 
 No internal source path is a compatibility surface.
 
@@ -66,9 +69,10 @@ privacy-safe correlation seam and must not be derived from any caller identity o
 
 ## Deliberate exclusions
 
-The kit provides MCP Apps definition, validation, and server serialization, but it does not build or
-host component bundles, implement the iframe bridge, select or verify component domains, manage
-DNS/TLS/ingress, or provide a runtime UI host. It also does not provide stateful sessions,
+The kit provides MCP Apps definition, validation, server serialization, and an optional browser view
+lifecycle that composes the official ext-apps bridge. It does not build or host component bundles,
+reimplement the iframe protocol, select or verify component domains, manage DNS/TLS/ingress, or
+provide a runtime UI host. It also does not provide stateful sessions,
 resumability, databases, OAuth grant or token storage, a custom authorization server, server-owned
 human approval, background jobs, generic shell or arbitrary-HTTP tools, deployment manifests, or
 service-specific integrations. See [MCP Apps and UI resources](mcp-apps.md).

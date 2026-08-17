@@ -3,6 +3,10 @@
     "target": "ES2023",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "paths": {
+      "@modelcontextprotocol/ext-apps/app-with-deps": ["./src/apps/ext-apps-app-with-deps.d.ts"],
+      "@modelcontextprotocol/ext-apps/app-bridge": ["./test/apps/ext-apps-app-bridge.d.ts"]
+    },
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node", "vitest/globals"],
     "strict": true,

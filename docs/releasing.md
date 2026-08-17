@@ -17,7 +17,7 @@ The workflow grants only `contents: read` and `id-token: write`, uses the public
 3. Run `pnpm release:check -- vX.Y.Z` and `pnpm verify` from a clean install. Review the packed file list and diff, then commit and push.
 4. Wait for the branch CI workflow to pass. Create an annotated `vX.Y.Z` tag on that exact commit and push the tag.
 5. Watch the Release workflow. After it succeeds, run `pnpm test:registry -- vX.Y.Z` or
-   independently install the exact version and both import and require all four public subpaths.
+   independently install the exact version and both import and require all five public subpaths.
 
 The tag-triggered workflow repeats `release:check` and the full `verify` gate, including the packed authenticated CommonJS Jest fixture on Node 24 without experimental flags. It creates the inspected tarball, uploads it as the `mcp-kit-package` GitHub Actions artifact, publishes that exact tarball publicly to npm, and verifies registry metadata, integrity, installation, and imports. It does not change package versions, create tags, create GitHub Releases, or deploy consumers.
 

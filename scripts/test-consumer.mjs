@@ -296,7 +296,11 @@ void (async () => {
 `,
   );
   await installOffline(workspace);
-  await run('pnpm', ['exec', 'tsc', '-p', 'tsconfig.json'], { cwd: workspace });
+  await run(
+    process.execPath,
+    [join(workspace, 'node_modules/typescript/bin/tsc'), '-p', 'tsconfig.json'],
+    { cwd: workspace },
+  );
   await run(process.execPath, ['smoke.mjs'], { cwd: workspace });
   await run(process.execPath, ['smoke.cjs'], { cwd: workspace });
 } finally {
