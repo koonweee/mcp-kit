@@ -6,6 +6,13 @@ Test at the narrowest seam that proves the behavior, then use the packed-package
 
 Use `createTestPrincipal`, `createRequestContext`, and `invokeTool` to test one tool with Zod parsing, scope policy, safe error conversion, and logging but without a transport.
 
+For every low-level callback registered through `extend`, test the matching
+`mcpExtensionErrorBoundary` adapter with an unexpected sentinel failure. Use an official client to
+assert the response is protocol internal error `-32603`, its message is exactly
+`The MCP request could not be completed`, and neither the sentinel nor a cause or error data crosses
+the wire. Separately cover any deliberately public `McpPublicError` and official `ProtocolError`
+semantics the extension uses.
+
 When testing a custom logger, use sentinel principal subjects and claims and assert that none appear
 in any started, completed, denied, or failed record. Correlate records through an opaque request ID;
 never derive that ID from the test principal or a real identity-provider value.

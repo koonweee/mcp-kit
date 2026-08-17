@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.3 - 2026-08-16
+
+- Added `mcpExtensionErrorBoundary`, a typed public boundary for resource, resource-template,
+  prompt, resource-listing, completion, and other low-level callbacks registered through `extend`.
+- Unexpected extension callback failures now become a fixed protocol internal-error message with no
+  cause or data, while approved `McpPublicError` messages and official SDK `ProtocolError` values
+  retain their intended public semantics.
+- Packed ESM and CommonJS declaration/runtime checks now cover sanitized extension failures through
+  an authenticated official client.
+
 ## 0.2.2 - 2026-08-16
 
 - Privacy-safe operational log records no longer include principal subjects or other authentication

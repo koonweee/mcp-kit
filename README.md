@@ -18,6 +18,9 @@ Define tools with `defineTool` and `defineServer`, then pass the definition to `
 Tool handlers receive typed `context.client.inputRequired` support booleans for safe ordinary
 fallbacks when a modern or legacy client cannot fulfil an elicitation.
 
+Low-level resources and prompts registered through `extend` use `mcpExtensionErrorBoundary` so
+unexpected service failures cannot cross the protocol boundary.
+
 ```ts
 import { defineServer, defineTool } from '@koonweee/mcp-kit';
 import { serveNode } from '@koonweee/mcp-kit/node';

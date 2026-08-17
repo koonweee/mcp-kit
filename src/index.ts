@@ -8,6 +8,7 @@ export type {
 export { createRequestContext } from './core/context.js';
 export type { McpClientProtocolEra, McpClientSupport } from './core/client-support.js';
 export { McpPublicError, McpScopeError } from './core/errors.js';
+export { mcpExtensionErrorBoundary } from './core/extensions.js';
 export type { McpLogRecord, McpLogger } from './core/logging.js';
 export { safeConsoleLogger, silentLogger } from './core/logging.js';
 export type { McpToolRisk } from './core/policy.js';

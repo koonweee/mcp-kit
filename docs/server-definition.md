@@ -137,9 +137,68 @@ await serveNode(notesServer, {
 
 `extend(server, context)` is the deliberate low-level seam for official SDK resources or prompts. Keep extensions portable and request-local; it is not permission to depend on Node or service-global mutable state.
 
+Every callback registered through that seam must use `mcpExtensionErrorBoundary`. Direct official
+SDK registration otherwise has no kit-owned public-error boundary:
+
+```ts
+import { mcpExtensionErrorBoundary } from '@koonweee/mcp-kit';
+import { ResourceTemplate } from '@modelcontextprotocol/server';
+import { z } from 'zod/v4';
+
+const reportPromptSchema = z.object({ reportId: z.string() });
+
+export const reportsServer = defineServer<Dependencies>()({
+  name: 'reports-mcp',
+  version: '1.0.0',
+  tools: [],
+  extend(server, context) {
+    server.registerResource(
+      'report',
+      new ResourceTemplate('report://{reportId}', { list: undefined }),
+      { mimeType: 'application/json' },
+      mcpExtensionErrorBoundary.resourceTemplate(async (uri, { reportId }) => ({
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: 'application/json',
+            text: JSON.stringify(
+              (await context.dependencies.reports.find(String(reportId))) ?? null,
+            ),
+          },
+        ],
+      })),
+    );
+    server.registerPrompt(
+      'review-report',
+      { argsSchema: reportPromptSchema },
+      mcpExtensionErrorBoundary.prompt(reportPromptSchema, ({ reportId }) => ({
+        messages: [
+          {
+            role: 'user',
+            content: { type: 'text', text: `Review report ${reportId}` },
+          },
+        ],
+      })),
+    );
+  },
+});
+```
+
+Use `.resource(...)`, `.resourceTemplate(...)`, and `.prompt(schema, ...)` for contextually typed
+read and prompt callbacks. Resource templates can also protect `list` and `complete` callbacks with
+`.listResources(...)` and `.completeResourceTemplate(...)`. `.wrap(...)` provides the same boundary
+for another already-typed official SDK extension callback.
+
+Valid results and `InputRequiredResult` values pass through unchanged. Official SDK
+`ProtocolError` instances also pass through so resource-not-found, invalid-parameter, and other
+protocol semantics remain intact. Throw `McpPublicError` only for a message deliberately approved
+for the caller. Any other synchronous exception or asynchronous rejection becomes JSON-RPC
+internal error `-32603` with `The MCP request could not be completed`; no cause or error data is
+attached and the boundary does not log callback arguments, results, or failures.
+
 ## Agent guidance
 
-- Owning files: `src/core/definition.ts`, `src/core/context.ts`, `src/core/policy.ts`, `src/core/errors.ts`, and `src/core/logging.ts` own this contract.
+- Owning files: `src/core/definition.ts`, `src/core/context.ts`, `src/core/extensions.ts`, `src/core/policy.ts`, `src/core/errors.ts`, and `src/core/logging.ts` own this contract.
 - Keep Zod validation, required-scope enforcement, risk policy, sanitized errors, and safe logging ahead of service behavior.
 - Pass tool schemas and extension metadata through the official SDK instead of converting, validating, or interpreting them in core; `_meta` must never contain secrets or change authorization behavior.
 - Pass the official `ServerContext` and `InputRequiredResult` through unchanged. Do not add a parallel elicitation framework; validate untrusted responses with `acceptedContent(..., schema)`.

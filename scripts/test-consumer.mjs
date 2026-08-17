@@ -55,11 +55,26 @@ try {
     join(workspace, 'smoke.mjs'),
     `
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import { mcpExtensionErrorBoundary } from '@koonweee/mcp-kit';
 import { createTestJwtAuthority } from '@koonweee/mcp-kit/test';
 import { getAuth0ProtectedResourceMetadataUrl } from '@koonweee/mcp-kit/auth0';
 import { startExample } from './dist/server.js';
 
 const authority = await createTestJwtAuthority();
+const privateExtensionFailure = 'PRIVATE_ESM_EXTENSION_FAILURE';
+try {
+  await mcpExtensionErrorBoundary.wrap(async () => {
+    throw new Error(privateExtensionFailure);
+  })();
+  throw new Error('ESM extension boundary did not reject');
+} catch (error) {
+  if (error?.code !== -32603 || error?.message !== 'The MCP request could not be completed') {
+    throw error;
+  }
+  if (String(error).includes(privateExtensionFailure) || error?.data !== undefined || error?.cause !== undefined) {
+    throw new Error('ESM extension boundary leaked private failure data');
+  }
+}
 const running = await startExample({
   issuer: authority.issuer,
   audience: authority.audience,
@@ -132,7 +147,7 @@ try {
     join(workspace, 'smoke.cjs'),
     `
 const { Client, StreamableHTTPClientTransport } = require('@modelcontextprotocol/client');
-const { defineServer, defineTool } = require('@koonweee/mcp-kit');
+const { defineServer, defineTool, mcpExtensionErrorBoundary } = require('@koonweee/mcp-kit');
 const { serveNode } = require('@koonweee/mcp-kit/node');
 const {
   createAuth0BearerGate,
@@ -170,6 +185,16 @@ void (async () => {
     name: 'commonjs-consumer',
     version: '1.0.0',
     tools: [read],
+    extend(server) {
+      server.registerResource(
+        'private-commonjs-resource',
+        'test://private-commonjs-resource',
+        { mimeType: 'text/plain' },
+        mcpExtensionErrorBoundary.resource(async () => {
+          throw new Error('PRIVATE_COMMONJS_RESOURCE_FAILURE');
+        }),
+      );
+    },
   });
   const verifier = createAuth0Verifier({
     issuer: authority.issuer,
@@ -201,6 +226,21 @@ void (async () => {
     const result = await client.callTool({ name: 'commonjs-read', arguments: {} });
     if (result.isError || result.structuredContent?.value !== 'commonjs-ready') {
       throw new Error('CommonJS authenticated tool call failed');
+    }
+    try {
+      await client.readResource({ uri: 'test://private-commonjs-resource' });
+      throw new Error('CommonJS private resource unexpectedly succeeded');
+    } catch (error) {
+      if (error?.code !== -32603 || error?.message !== 'The MCP request could not be completed') {
+        throw error;
+      }
+      if (
+        String(error).includes('PRIVATE_COMMONJS_RESOURCE_FAILURE') ||
+        error?.data !== undefined ||
+        error?.cause !== undefined
+      ) {
+        throw new Error('CommonJS extension boundary leaked private failure data');
+      }
     }
     console.log('packed CommonJS consumer passed authenticated smoke checks');
   } finally {

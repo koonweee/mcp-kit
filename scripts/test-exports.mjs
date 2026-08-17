@@ -74,11 +74,11 @@ console.log('all four CommonJS public subpaths required from the packed artifact
   await writeFile(
     join(workspace, 'index.ts'),
     `
-import { defineServer, defineTool, type McpClientProtocolEra, type McpLogRecord, type McpPrincipal } from '@koonweee/mcp-kit';
+import { defineServer, defineTool, mcpExtensionErrorBoundary, type McpClientProtocolEra, type McpLogRecord, type McpPrincipal } from '@koonweee/mcp-kit';
 import { createNodeMcpHandler, type NodeMcpHandler } from '@koonweee/mcp-kit/node';
 import { createAuth0Verifier, type Auth0VerifierOptions } from '@koonweee/mcp-kit/auth0';
 import { connectInMemory, createTestPrincipal, type InMemoryMcpClient } from '@koonweee/mcp-kit/test';
-import { inputRequired, type ServerContext } from '@modelcontextprotocol/server';
+import { ResourceTemplate, inputRequired, type ServerContext } from '@modelcontextprotocol/server';
 import { z } from 'zod/v4';
 
 const principal: McpPrincipal = createTestPrincipal();
@@ -87,6 +87,30 @@ const logRecord: McpLogRecord = { event: 'tool.started', requestId: 'opaque', to
 logRecord.subject;
 const authOptions = {} as Auth0VerifierOptions;
 const verifier = createAuth0Verifier(authOptions);
+const resourceCallback = mcpExtensionErrorBoundary.resource((uri, sdkContext) => {
+  const officialContext: ServerContext = sdkContext;
+  void officialContext;
+  return { contents: [{ uri: uri.href, text: 'typed resource' }] };
+});
+const resourceTemplateCallback = mcpExtensionErrorBoundary.resourceTemplate(
+  (uri, variables, sdkContext) => {
+    const officialContext: ServerContext = sdkContext;
+    void officialContext;
+    return { contents: [{ uri: uri.href, text: String(variables['name']) }] };
+  },
+);
+const promptSchema = z.object({ topic: z.string() });
+const promptCallback = mcpExtensionErrorBoundary.prompt(promptSchema, ({ topic }, sdkContext) => {
+  const officialContext: ServerContext = sdkContext;
+  void officialContext;
+  return { messages: [{ role: 'user', content: { type: 'text', text: topic } }] };
+});
+const listCallback = mcpExtensionErrorBoundary.listResources(() => ({ resources: [] }));
+const completeCallback = mcpExtensionErrorBoundary.completeResourceTemplate(async (value) => [value]);
+const template = new ResourceTemplate('test://{name}', {
+  list: listCallback,
+  complete: { name: completeCallback },
+});
 const tool = defineTool<Record<string, never>>();
 const outputSchema = z.object({ value: z.string() });
 const typedTool = tool({
@@ -150,17 +174,17 @@ const connection: Promise<InMemoryMcpClient> = connectInMemory(
   definition,
   { requestId: 'types', principal, logger: { log() {}, error() {} }, dependencies: {} },
 );
-void [tool, typedTool, multiRoundTool, verifier, handler, connection, logRecord];
+void [tool, typedTool, multiRoundTool, verifier, handler, connection, logRecord, resourceCallback, resourceTemplateCallback, promptCallback, template];
 `,
   );
   await writeFile(
     join(workspace, 'index.cts'),
     `
-import { defineServer, defineTool, type McpClientProtocolEra, type McpLogRecord, type McpPrincipal } from '@koonweee/mcp-kit';
+import { defineServer, defineTool, mcpExtensionErrorBoundary, type McpClientProtocolEra, type McpLogRecord, type McpPrincipal } from '@koonweee/mcp-kit';
 import { createNodeMcpHandler, type NodeMcpHandler } from '@koonweee/mcp-kit/node';
 import { createAuth0Verifier, type Auth0VerifierOptions } from '@koonweee/mcp-kit/auth0';
 import { createTestJwtAuthority, createTestPrincipal } from '@koonweee/mcp-kit/test';
-import { inputRequired, type ServerContext } from '@modelcontextprotocol/server';
+import { ResourceTemplate, inputRequired, type ServerContext } from '@modelcontextprotocol/server';
 import { z } from 'zod/v4';
 
 const principal: McpPrincipal = createTestPrincipal();
@@ -168,6 +192,30 @@ const logRecord: McpLogRecord = { event: 'tool.started', requestId: 'opaque', to
 // @ts-expect-error Principal identity is deliberately absent from packed log record declarations.
 logRecord.subject;
 const verifier = createAuth0Verifier({} as Auth0VerifierOptions);
+const resourceCallback = mcpExtensionErrorBoundary.resource((uri, sdkContext) => {
+  const officialContext: ServerContext = sdkContext;
+  void officialContext;
+  return { contents: [{ uri: uri.href, text: 'typed resource' }] };
+});
+const resourceTemplateCallback = mcpExtensionErrorBoundary.resourceTemplate(
+  (uri, variables, sdkContext) => {
+    const officialContext: ServerContext = sdkContext;
+    void officialContext;
+    return { contents: [{ uri: uri.href, text: String(variables['name']) }] };
+  },
+);
+const promptSchema = z.object({ topic: z.string() });
+const promptCallback = mcpExtensionErrorBoundary.prompt(promptSchema, ({ topic }, sdkContext) => {
+  const officialContext: ServerContext = sdkContext;
+  void officialContext;
+  return { messages: [{ role: 'user', content: { type: 'text', text: topic } }] };
+});
+const listCallback = mcpExtensionErrorBoundary.listResources(() => ({ resources: [] }));
+const completeCallback = mcpExtensionErrorBoundary.completeResourceTemplate(async (value) => [value]);
+const template = new ResourceTemplate('test://{name}', {
+  list: listCallback,
+  complete: { name: completeCallback },
+});
 const outputSchema = z.object({ value: z.string() });
 const tool = defineTool<Record<string, never>>()({
   name: 'commonjs-types',
@@ -196,7 +244,7 @@ const definition = defineServer<Record<string, never>>()({
 });
 const handler: NodeMcpHandler = createNodeMcpHandler(definition, { dependencies: () => ({}) });
 const authority = createTestJwtAuthority();
-void [principal, verifier, handler, authority, logRecord];
+void [principal, verifier, handler, authority, logRecord, resourceCallback, resourceTemplateCallback, promptCallback, template];
 `,
   );
   await writeFile(

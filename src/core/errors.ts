@@ -23,7 +23,10 @@ export class McpScopeError extends McpPublicError {
 }
 
 /** Converts arbitrary failures to a stable, sanitized public error. */
-export function toPublicError(error: unknown): McpPublicError {
+export function toPublicError(
+  error: unknown,
+  fallbackMessage = 'The tool could not be completed',
+): McpPublicError {
   if (error instanceof McpPublicError) return error;
-  return new McpPublicError('internal_error', 'The tool could not be completed', { cause: error });
+  return new McpPublicError('internal_error', fallbackMessage, { cause: error });
 }
