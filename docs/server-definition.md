@@ -44,7 +44,12 @@ The curried helpers preserve schema output inference and the shared dependency t
 
 `outputSchema` is optional and accepts the same Standard Schema plus JSON Schema interface as the official SDK; Zod v4 schemas implement it directly. When present, a successful handler result must include `structuredContent` matching the schema's inferred output type. The official SDK advertises the converted JSON Schema in `tools/list` and validates successful structured output at runtime. Without `outputSchema`, `structuredContent` remains optional and keeps the SDK's `unknown` type. Error results remain exempt from output validation, matching the SDK.
 
-Tool-level `_meta` is optional extension metadata forwarded to `McpServer.registerTool()` and advertised in `tools/list`. It can carry client-specific hints, including MCP Apps metadata, but it is not an authorization or risk-policy input. Treat it as client-visible, untrusted extension data: never put credentials, tokens, personal data, or other secrets in `_meta`.
+Tool-level `_meta` is optional extension metadata forwarded to `McpServer.registerTool()` and
+advertised in `tools/list`. Use the typed `ui` field and first-class `apps.resources` definitions for
+MCP Apps rather than hand-authoring standard UI metadata; see
+[MCP Apps and UI resources](mcp-apps.md). `_meta` remains available for other client-specific hints,
+but it is not an authorization or risk-policy input. Treat it as client-visible, untrusted extension
+data: never put credentials, tokens, personal data, or other secrets in `_meta`.
 
 ## Modern multi-round input
 

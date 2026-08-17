@@ -51,6 +51,7 @@ for (const privatePath of [
     if (error?.code !== 'ERR_PACKAGE_PATH_NOT_EXPORTED') throw error;
   }
 }
+if (typeof surfaces[0].defineAppResource !== 'function') throw new Error('MCP Apps helper missing');
 if (typeof surfaces[3].createTestJwtAuthority !== 'function') throw new Error('test helper missing');
 console.log('all four public subpaths imported from the packed artifact');
 `,
@@ -67,6 +68,7 @@ const surfaces = [
 for (const [index, surface] of surfaces.entries()) {
   if (Object.keys(surface).length === 0) throw new Error('empty CommonJS public subpath ' + index);
 }
+if (typeof surfaces[0].defineAppResource !== 'function') throw new Error('CommonJS MCP Apps helper missing');
 if (typeof surfaces[3].createTestJwtAuthority !== 'function') throw new Error('CommonJS test helper missing');
 console.log('all four CommonJS public subpaths required from the packed artifact');
 `,
@@ -74,7 +76,7 @@ console.log('all four CommonJS public subpaths required from the packed artifact
   await writeFile(
     join(workspace, 'index.ts'),
     `
-import { defineServer, defineTool, mcpExtensionErrorBoundary, type McpClientProtocolEra, type McpLogRecord, type McpPrincipal } from '@koonweee/mcp-kit';
+import { MCP_APP_RESOURCE_MIME_TYPE, defineAppResource, defineServer, defineTool, mcpExtensionErrorBoundary, validateMcpApps, type McpAppResourceDefinition, type McpClientProtocolEra, type McpLogRecord, type McpPrincipal } from '@koonweee/mcp-kit';
 import { createNodeMcpHandler, type NodeMcpHandler } from '@koonweee/mcp-kit/node';
 import { createAuth0Verifier, type Auth0VerifierOptions } from '@koonweee/mcp-kit/auth0';
 import { connectInMemory, createTestPrincipal, type InMemoryMcpClient } from '@koonweee/mcp-kit/test';
@@ -113,12 +115,19 @@ const template = new ResourceTemplate('test://{name}', {
 });
 const tool = defineTool<Record<string, never>>();
 const outputSchema = z.object({ value: z.string() });
+const appResource: McpAppResourceDefinition<Record<string, never>> = defineAppResource<Record<string, never>>()({
+  name: 'typed-app',
+  uri: 'ui://typed/app-v1.html',
+  ui: { domain: 'https://widgets.example.com', prefersBorder: true },
+  html: '<!doctype html><html><body>typed</body></html>',
+});
 const typedTool = tool({
   name: 'typed',
   description: 'Packed declaration inference fixture',
   inputSchema: z.object({}),
   outputSchema,
   _meta: { 'example.dev/category': 'types' },
+  ui: { resourceUri: appResource.uri },
   requiredScopes: [],
   risk: { kind: 'read' },
   handler: (_input, context) => {
@@ -167,20 +176,23 @@ tool({
 const definition = defineServer<Record<string, never>>()({
   name: 'types',
   version: '1.0.0',
+  apps: { resources: [appResource] },
   tools: [typedTool, multiRoundTool],
 });
+validateMcpApps(definition, { profile: 'openai-submission' });
+const appMimeType: typeof MCP_APP_RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app';
 const handler: NodeMcpHandler = createNodeMcpHandler(definition, { dependencies: () => ({}) });
 const connection: Promise<InMemoryMcpClient> = connectInMemory(
   definition,
   { requestId: 'types', principal, logger: { log() {}, error() {} }, dependencies: {} },
 );
-void [tool, typedTool, multiRoundTool, verifier, handler, connection, logRecord, resourceCallback, resourceTemplateCallback, promptCallback, template];
+void [tool, typedTool, multiRoundTool, appResource, appMimeType, verifier, handler, connection, logRecord, resourceCallback, resourceTemplateCallback, promptCallback, template];
 `,
   );
   await writeFile(
     join(workspace, 'index.cts'),
     `
-import { defineServer, defineTool, mcpExtensionErrorBoundary, type McpClientProtocolEra, type McpLogRecord, type McpPrincipal } from '@koonweee/mcp-kit';
+import { MCP_APP_RESOURCE_MIME_TYPE, defineAppResource, defineServer, defineTool, mcpExtensionErrorBoundary, validateMcpApps, type McpClientProtocolEra, type McpLogRecord, type McpPrincipal } from '@koonweee/mcp-kit';
 import { createNodeMcpHandler, type NodeMcpHandler } from '@koonweee/mcp-kit/node';
 import { createAuth0Verifier, type Auth0VerifierOptions } from '@koonweee/mcp-kit/auth0';
 import { createTestJwtAuthority, createTestPrincipal } from '@koonweee/mcp-kit/test';
@@ -217,12 +229,19 @@ const template = new ResourceTemplate('test://{name}', {
   complete: { name: completeCallback },
 });
 const outputSchema = z.object({ value: z.string() });
+const appResource = defineAppResource<Record<string, never>>()({
+  name: 'commonjs-app',
+  uri: 'ui://commonjs/app-v1.html',
+  ui: { domain: 'https://widgets.example.com' },
+  html: '<!doctype html><html><body>commonjs</body></html>',
+});
 const tool = defineTool<Record<string, never>>()({
   name: 'commonjs-types',
   description: 'CommonJS declaration inference fixture',
   inputSchema: z.object({ requireInput: z.boolean() }),
   outputSchema,
   _meta: { 'example.dev/module': 'commonjs' },
+  ui: { resourceUri: appResource.uri },
   requiredScopes: [],
   risk: { kind: 'read' },
   handler: ({ requireInput }, context, sdkContext) => {
@@ -240,11 +259,14 @@ const tool = defineTool<Record<string, never>>()({
 const definition = defineServer<Record<string, never>>()({
   name: 'commonjs-types',
   version: '1.0.0',
+  apps: { resources: [appResource] },
   tools: [tool],
 });
+validateMcpApps(definition, { profile: 'openai-submission' });
+const appMimeType: typeof MCP_APP_RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app';
 const handler: NodeMcpHandler = createNodeMcpHandler(definition, { dependencies: () => ({}) });
 const authority = createTestJwtAuthority();
-void [principal, verifier, handler, authority, logRecord, resourceCallback, resourceTemplateCallback, promptCallback, template];
+void [principal, verifier, handler, authority, appResource, appMimeType, logRecord, resourceCallback, resourceTemplateCallback, promptCallback, template];
 `,
   );
   await writeFile(

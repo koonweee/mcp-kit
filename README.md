@@ -1,6 +1,10 @@
 # mcp-kit
 
-`@koonweee/mcp-kit` is a small TypeScript toolkit for defining independently deployed, stateless MCP servers in a personal stack. It provides portable tool definitions, a Node Streamable HTTP adapter, Auth0 resource-server support, safe policy and logging defaults, and test helpers. Service tools, backend clients, credentials, and deployment stay in the consuming service repository.
+`@koonweee/mcp-kit` is a small TypeScript toolkit for defining independently deployed, stateless MCP
+servers in a personal stack. It provides portable tool and MCP Apps definitions, a Node Streamable
+HTTP adapter, Auth0 resource-server support, safe policy and logging defaults, and test helpers.
+Service tools, UI bundles, backend clients, credentials, domains, and deployment stay in the
+consuming service repository.
 
 The package supports Node.js 24 or newer from both ESM and CommonJS applications. Cloudflare is a
 documented adapter seam, not a supported runtime.
@@ -20,6 +24,11 @@ fallbacks when a modern or legacy client cannot fulfil an elicitation.
 
 Low-level resources and prompts registered through `extend` use `mcpExtensionErrorBoundary` so
 unexpected service failures cannot cross the protocol boundary.
+
+MCP Apps resources and typed tool links use the standard `ui://`,
+`text/html;profile=mcp-app`, and `_meta.ui` wire shapes. See
+[MCP Apps and UI resources](docs/mcp-apps.md), including the explicit OpenAI submission validation
+profile and opt-in legacy ChatGPT aliases.
 
 ```ts
 import { defineServer, defineTool } from '@koonweee/mcp-kit';
@@ -55,6 +64,7 @@ const { serveNode } = require('@koonweee/mcp-kit/node');
 
 - [Architecture and boundaries](docs/architecture.md)
 - [Defining a server](docs/server-definition.md)
+- [MCP Apps and UI resources](docs/mcp-apps.md)
 - [Auth0 resource-server setup](docs/auth0.md)
 - [Testing and package verification](docs/testing.md)
 - [Runtime adapters](docs/adapters.md)

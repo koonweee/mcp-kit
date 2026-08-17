@@ -15,3 +15,20 @@ export type { McpToolRisk } from './core/policy.js';
 export { enforceRequiredScopes, riskToAnnotations } from './core/policy.js';
 export type { McpServerDefinition, McpToolDefinition, McpToolResult } from './core/definition.js';
 export { createMcpServer, defineServer, defineTool } from './core/definition.js';
+export type {
+  McpAppResourceDefinition,
+  McpAppsCompatibilityOptions,
+  McpAppsDefinition,
+  McpAppsValidationIssue,
+  McpAppsValidationProfile,
+  McpUiContentSecurityPolicy,
+  McpUiPermissions,
+  McpUiResourceMetadata,
+  McpUiToolMetadata,
+} from './core/apps.js';
+export {
+  MCP_APP_RESOURCE_MIME_TYPE,
+  McpAppsValidationError,
+  defineAppResource,
+  validateMcpApps,
+} from './core/apps.js';

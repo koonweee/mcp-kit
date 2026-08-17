@@ -118,8 +118,22 @@ try {
   if (readTool?._meta?.['example.dev/category'] !== 'status') {
     throw new Error('tool metadata was not advertised');
   }
+  if (readTool?._meta?.ui?.resourceUri !== 'ui://status/card-v1.html') {
+    throw new Error('MCP Apps tool linkage was not advertised');
+  }
   if (writeTool?.outputSchema !== undefined || writeTool?._meta !== undefined) {
     throw new Error('optional tool fields changed untyped tool discovery');
+  }
+  const listedResources = (await allowed.listResources()).resources;
+  if (!listedResources.some((resource) => resource.uri === 'ui://status/card-v1.html')) {
+    throw new Error('MCP Apps resource was not advertised');
+  }
+  const appResource = await allowed.readResource({ uri: 'ui://status/card-v1.html' });
+  if (
+    appResource.contents[0]?.mimeType !== 'text/html;profile=mcp-app' ||
+    appResource.contents[0]?._meta?.ui?.domain !== 'https://widgets.example.com'
+  ) {
+    throw new Error('MCP Apps resource contents were not serialized');
   }
   const read = await allowed.callTool({ name: 'read-status', arguments: {} });
   const write = await allowed.callTool({ name: 'write-status', arguments: { value: 'allowed-value' } });

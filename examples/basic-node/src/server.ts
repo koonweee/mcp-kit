@@ -8,7 +8,7 @@ import {
   principalFromAuthInfo,
   type Auth0JwksOptions,
 } from '@koonweee/mcp-kit/auth0';
-import { defineServer, defineTool } from '@koonweee/mcp-kit';
+import { defineAppResource, defineServer, defineTool } from '@koonweee/mcp-kit';
 import { serveNode, type RunningNodeMcpServer } from '@koonweee/mcp-kit/node';
 
 interface FakeBackend {
@@ -28,11 +28,23 @@ function createFakeBackend(): FakeBackend {
 
 const tool = defineTool<{ readonly backend: FakeBackend }>();
 const statusOutputSchema = z.object({ status: z.string() });
+const statusApp = defineAppResource<{ readonly backend: FakeBackend }>()({
+  name: 'status-card',
+  uri: 'ui://status/card-v1.html',
+  title: 'Backend status card',
+  description: 'Neutral MCP Apps resource used by the basic Node example.',
+  ui: {
+    domain: 'https://widgets.example.com',
+    prefersBorder: true,
+  },
+  html: '<!doctype html><html lang="en"><body><main>Status results are also available through the tool text fallback.</main></body></html>',
+});
 
 export const exampleDefinition = defineServer<{ readonly backend: FakeBackend }>()({
   name: 'mcp-kit-basic-node',
   version: '1.0.0',
   instructions: 'A neutral example; replace its fake backend in the consuming service.',
+  apps: { resources: [statusApp] },
   tools: [
     tool({
       name: 'read-status',
@@ -40,6 +52,7 @@ export const exampleDefinition = defineServer<{ readonly backend: FakeBackend }>
       inputSchema: z.object({}),
       outputSchema: statusOutputSchema,
       _meta: { 'example.dev/category': 'status' },
+      ui: { resourceUri: statusApp.uri },
       requiredScopes: ['example:read'],
       risk: { kind: 'read' },
       handler(_input, context) {
