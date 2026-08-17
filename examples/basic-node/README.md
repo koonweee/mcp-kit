@@ -3,7 +3,10 @@
 This neutral consumer keeps its fake backend, environment loading, and tool definitions outside
 `mcp-kit`. Copy the inspected package tarball to `mcp-kit.tgz`, set `AUTH0_ISSUER` and
 `AUTH0_AUDIENCE`, then run `pnpm install && pnpm start`. The server exposes `/healthz`, `/mcp`, and
-path-aware protected-resource metadata. The Dockerfile consumes the same pinned tarball.
+path-aware protected-resource metadata. Its read tool also demonstrates a neutral first-class MCP
+Apps resource, standard tool linkage, and a text/structured fallback. The placeholder
+`https://widgets.example.com` origin must be replaced by a consuming plugin's own canonical HTTPS
+UI origin before submission. The Dockerfile consumes the same pinned tarball.
 
 ## Agent guidance
 

@@ -2,7 +2,10 @@
 
 ## Responsibility
 
-`mcp-kit` centralizes mechanics that repeat across personal MCP servers: portable definitions, server-side scope and risk policy, safe errors and logging, stateless Node serving, Auth0 JWT verification and RFC 9728 discovery, and reusable test seams.
+`mcp-kit` centralizes mechanics that repeat across personal MCP servers: portable definitions,
+first-class MCP Apps resources and tool linkage, server-side scope and risk policy, safe errors and
+logging, stateless Node serving, Auth0 JWT verification and RFC 9728 discovery, and reusable test
+seams.
 
 A consuming service owns its tools, business rules, backend API client, environment loading, service credentials, process entrypoint, container, and deployment. The stack repository owns ingress, secret delivery, image pinning, and rollout. There is no gateway database and no shared service credential store.
 
@@ -52,7 +55,12 @@ Before a tool handler runs, Zod validates its input and core checks every declar
 
 ## Deliberate exclusions
 
-V1 does not provide stateful sessions, resumability, databases, OAuth grant or token storage, a custom authorization server, server-owned human approval, MCP UI, background jobs, generic shell or arbitrary-HTTP tools, deployment manifests, or service-specific integrations.
+The kit provides MCP Apps definition, validation, and server serialization, but it does not build or
+host component bundles, implement the iframe bridge, select or verify component domains, manage
+DNS/TLS/ingress, or provide a runtime UI host. It also does not provide stateful sessions,
+resumability, databases, OAuth grant or token storage, a custom authorization server, server-owned
+human approval, background jobs, generic shell or arbitrary-HTTP tools, deployment manifests, or
+service-specific integrations. See [MCP Apps and UI resources](mcp-apps.md).
 
 Node is the only runtime implementation. The Cloudflare directory records a future design constraint; it has no runtime code, dependency, or public export. See [Runtime adapters](adapters.md).
 

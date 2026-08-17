@@ -12,6 +12,13 @@ import type { McpToolRequestContext } from './context.js';
 import { resolveMcpClientSupport, type McpClientSupport } from './client-support.js';
 import { toPublicError } from './errors.js';
 import { enforceRequiredScopes, riskToAnnotations, type McpToolRisk } from './policy.js';
+import {
+  mcpAppToolMetadata,
+  registerMcpAppResources,
+  validateMcpApps,
+  type McpAppsDefinition,
+  type McpUiToolMetadata,
+} from './apps.js';
 
 type McpToolErrorResult = CallToolResult & { readonly isError: true };
 
@@ -40,6 +47,8 @@ export interface McpToolDefinition<
   readonly inputSchema: TInputSchema;
   readonly outputSchema?: TOutputSchema;
   readonly _meta?: MetaObject;
+  /** Typed MCP Apps linkage. Standard `_meta.ui` serialization remains authoritative. */
+  readonly ui?: McpUiToolMetadata;
   readonly requiredScopes: readonly string[];
   readonly risk: McpToolRisk;
   /** The third argument is the official SDK context for this invocation. */
@@ -61,6 +70,7 @@ export interface McpServerDefinition<TDependencies> {
     z.ZodType,
     StandardSchemaWithJSON | undefined
   >[];
+  readonly apps?: McpAppsDefinition<TDependencies>;
   readonly extend?: (
     server: McpServer,
     context: McpRequestContext<TDependencies>,
@@ -79,8 +89,21 @@ export function defineTool<TDependencies>() {
 
 /** Curried helper for a definition whose tools share one injected dependency type. */
 export function defineServer<TDependencies>() {
-  return (definition: McpServerDefinition<TDependencies>): McpServerDefinition<TDependencies> =>
-    Object.freeze({ ...definition, tools: Object.freeze([...definition.tools]) });
+  return (definition: McpServerDefinition<TDependencies>): McpServerDefinition<TDependencies> => {
+    validateMcpApps(definition);
+    return Object.freeze({
+      ...definition,
+      tools: Object.freeze([...definition.tools]),
+      ...(definition.apps
+        ? {
+            apps: Object.freeze({
+              ...definition.apps,
+              resources: Object.freeze([...definition.apps.resources]),
+            }),
+          }
+        : {}),
+    });
+  };
 }
 
 /** Executes a validated tool definition with scope enforcement, sanitization, and safe logging. */
@@ -169,6 +192,7 @@ export async function createMcpServer<TDependencies>(
   definition: McpServerDefinition<TDependencies>,
   context: McpRequestContext<TDependencies>,
 ): Promise<McpServer> {
+  validateMcpApps(definition);
   const server = new McpServer(
     {
       name: definition.name,
@@ -179,6 +203,7 @@ export async function createMcpServer<TDependencies>(
   );
 
   for (const tool of definition.tools) {
+    const toolMetadata = mcpAppToolMetadata(tool, definition.apps?.compatibility);
     server.registerTool(
       tool.name,
       {
@@ -187,7 +212,7 @@ export async function createMcpServer<TDependencies>(
         inputSchema: tool.inputSchema,
         ...(tool.outputSchema ? { outputSchema: tool.outputSchema } : {}),
         annotations: riskToAnnotations(tool.risk),
-        ...(tool._meta ? { _meta: tool._meta } : {}),
+        ...(toolMetadata ? { _meta: toolMetadata } : {}),
       },
       async (input, sdkContext) => {
         const legacyCapabilities = server.server.getClientCapabilities();
@@ -208,6 +233,7 @@ export async function createMcpServer<TDependencies>(
     );
   }
 
+  if (definition.apps) registerMcpAppResources(server, definition.apps, context);
   await definition.extend?.(server, context);
   return server;
 }

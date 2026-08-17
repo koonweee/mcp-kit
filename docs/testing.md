@@ -47,6 +47,12 @@ The three-argument form remains suitable for existing handlers that ignore the o
 
 `connectInMemory(definition, context, clientOptions?)` connects an official MCP client to a fresh server through linked transports. Pass official `ClientOptions.capabilities` to test legacy client-support branches. Use a real HTTP handler and a client pinned to `2026-07-28` for modern envelope behavior. Cover form-capable, URL-only, and incapable clients and assert the matching `context.client.inputRequired` booleans. Always call the returned `close()`.
 
+For MCP Apps definitions, use the same official client to inspect `tools/list`, `resources/list`, and
+`resources/read`. Assert the `ui://` linkage, `text/html;profile=mcp-app` MIME type, standard
+resource-content `_meta.ui`, and the ordinary text/structured fallback returned by `tools/call`.
+Run `validateMcpApps(definition, { profile: 'openai-submission' })` separately when the consumer will
+be submitted as an OpenAI plugin.
+
 ## Authenticated HTTP tests
 
 `createTestJwtAuthority()` creates an ephemeral RS256 issuer with an in-memory JWKS fetch function. Private keys stay closure-local and are not exported from production package paths. Pair its values with `createAuth0Verifier`, then pass `createAuth0BearerGate` and `principalFromAuthInfo` to `serveNode`.

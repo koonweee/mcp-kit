@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 - 2026-08-17
+
+- Added first-class, typed MCP Apps resource definitions and tool linkage using the stable `ui://`,
+  `text/html;profile=mcp-app`, resource-content `_meta.ui`, and tool `_meta.ui.resourceUri` shapes.
+- Added portable validation for resource identity, linkage, and canonical HTTPS UI origins, plus an
+  explicit OpenAI submission profile that requires a domain while allowing all templates in one
+  plugin to share that origin.
+- Added opt-in legacy ChatGPT aliases while keeping standard metadata authoritative, and preserved
+  text/structured tool fallbacks for clients that do not render MCP Apps.
+- Extended unit, packed declaration/runtime, authenticated consumer, example, and architecture
+  coverage for MCP Apps serialization and compatibility behavior.
+
 ## 0.2.3 - 2026-08-16
 
 - Added `mcpExtensionErrorBoundary`, a typed public boundary for resource, resource-template,
