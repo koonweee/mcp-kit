@@ -1,6 +1,12 @@
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { EmptyResult, Implementation } from '@modelcontextprotocol/sdk/types.js';
-import type { McpAppModelContext, McpAppToolResult } from '../../src/apps/index.js';
+import type {
+  McpAppHostCapabilities,
+  McpAppMessage,
+  McpAppMessageResult,
+  McpAppModelContext,
+  McpAppToolResult,
+} from '../../src/apps/index.js';
 
 export interface McpUiHostContext {
   [key: string]: unknown;
@@ -16,7 +22,7 @@ export class AppBridge {
   constructor(
     client: null,
     hostInfo: Implementation,
-    capabilities: Record<string, object>,
+    capabilities: McpAppHostCapabilities,
     options?: { hostContext?: McpUiHostContext },
   );
   connect(transport: Transport): Promise<void>;
@@ -28,4 +34,6 @@ export class AppBridge {
   set onupdatemodelcontext(
     callback: ((params: McpAppModelContext) => Promise<EmptyResult>) | undefined,
   );
+  get onmessage(): ((params: McpAppMessage) => Promise<McpAppMessageResult>) | undefined;
+  set onmessage(callback: ((params: McpAppMessage) => Promise<McpAppMessageResult>) | undefined);
 }

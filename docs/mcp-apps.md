@@ -47,13 +47,33 @@ padding pattern. It retains the official resize-observer cleanup, closes the tra
 or host teardown, removes its listener and timer, restores the styles it changed, and makes `close()`
 idempotent. Call `await runtime.close()` before replacing a view yourself.
 
-`runtime.app` exposes a typed subset of official host methods: `callServerTool`, `sendLog`,
-`openLink`, `updateModelContext`, and `requestTeardown`. `updateModelContext` accepts the official
-`content` blocks and/or `structuredContent` object, delegates directly to the official `App`, and
-resolves when the host acknowledges the request. Each update replaces the view's previous model
-context; it does not itself trigger a follow-up model turn. Hosts may reject unsupported modalities
-or the entire capability, so consumer Apps should handle a rejected promise without replacing live
-tool-result state with fixture data.
+`runtime.app` exposes a typed subset of official host methods: `getHostCapabilities`,
+`callServerTool`, `sendLog`, `openLink`, `updateModelContext`, `sendMessage`, and
+`requestTeardown`. `updateModelContext` accepts the official `content` blocks and/or
+`structuredContent` object, delegates directly to the official `App`, and resolves when the host
+acknowledges the request. Each update replaces the view's previous model context; it does not itself
+trigger a follow-up model turn.
+
+Use `sendMessage` only for an explicit user action that should add a user-role message and trigger a
+model response. After `connect()` completes, feature-detect it through the capabilities negotiated
+by the official bridge:
+
+```ts
+if (runtime.app.getHostCapabilities()?.message?.text) {
+  const result = await runtime.app.sendMessage({
+    role: 'user',
+    content: [{ type: 'text', text: 'Explain the selected report item.' }],
+  });
+  if (result.isError) renderMessageDeliveryError();
+}
+```
+
+Before connection, `getHostCapabilities()` returns `undefined`. A host can advertise `message`
+without supporting every content modality, so check the modality the action needs rather than only
+the parent property. Consumers must handle both an acknowledged `{ isError: true }` result and a
+rejected promise caused by host rejection, timeout, or transport failure. Neither failure should
+replace live tool-result state with fixture data. The runtime delegates both methods directly to
+the official ext-apps `App`; it does not implement the `ui/message` protocol.
 
 The optional `transport` setting is an advanced structural seam; the default always constructs the
 official parent-window `PostMessageTransport`. Tests in this repository inject only explicit test

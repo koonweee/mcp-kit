@@ -1,6 +1,9 @@
 import { AppBridge, type McpUiHostContext } from '@modelcontextprotocol/ext-apps/app-bridge';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type {
+  McpAppHostCapabilities,
+  McpAppMessage,
+  McpAppMessageResult,
   McpAppModelContext,
   McpAppRuntimeOptions,
   McpAppToolInput,
@@ -10,6 +13,9 @@ import { createMcpAppRuntime } from '../../src/apps/index.js';
 
 interface TestHostOptions {
   readonly hostContext?: McpUiHostContext;
+  readonly hostCapabilities?: McpAppHostCapabilities;
+  readonly messageFailure?: Error;
+  readonly messageResult?: McpAppMessageResult;
   readonly failInitialization?: Error;
   readonly failClose?: Error;
 }
@@ -189,13 +195,22 @@ export function createMcpAppTestHost(
   const bridge = new AppBridge(
     null,
     { name: 'mcp-kit-test-host', version: '1.0.0' },
-    { updateModelContext: { text: {}, structuredContent: {} } },
+    hostOptions.hostCapabilities ?? {
+      updateModelContext: { text: {}, structuredContent: {} },
+      message: { text: {} },
+    },
     hostOptions.hostContext ? { hostContext: hostOptions.hostContext } : undefined,
   );
   const modelContextUpdates: McpAppModelContext[] = [];
+  const messages: McpAppMessage[] = [];
   bridge.onupdatemodelcontext = (params) => {
     modelContextUpdates.push(params);
     return Promise.resolve({});
+  };
+  bridge.onmessage = (params) => {
+    messages.push(params);
+    if (hostOptions.messageFailure) return Promise.reject(hostOptions.messageFailure);
+    return Promise.resolve(hostOptions.messageResult ?? {});
   };
 
   return {
@@ -214,6 +229,7 @@ export function createMcpAppTestHost(
       return bridge.sendToolResult(result);
     },
     modelContextUpdates,
+    messages,
     emitTransportError(error: Error) {
       appTransport.onerror?.(error);
     },

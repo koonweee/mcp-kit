@@ -105,9 +105,21 @@ void (async () => {
   await run('npm', ['audit', 'signatures'], { cwd: workspace });
   await run(process.execPath, ['index.mjs'], { cwd: workspace });
   await run(process.execPath, ['index.cjs'], { cwd: workspace });
+  const appsDeclaration = await readFile(
+    join(workspace, 'node_modules/@koonweee/mcp-kit/dist/esm/apps/index.d.ts'),
+    'utf8',
+  );
+  for (const expected of [
+    'sendMessage(params: McpAppMessage',
+    'getHostCapabilities(): McpAppHostCapabilities | undefined',
+  ]) {
+    if (!appsDeclaration.includes(expected)) {
+      throw new Error(`Registry Apps declaration is missing ${expected}`);
+    }
+  }
   await writeFile(
     join(workspace, 'browser-entry.js'),
-    `import { createMcpAppRuntime } from '@koonweee/mcp-kit/apps';\nglobalThis.__mcpKitBrowserRuntime = typeof createMcpAppRuntime;\nglobalThis.__mcpKitUpdateModelContext = (runtime) => typeof runtime.app.updateModelContext;\n`,
+    `import { createMcpAppRuntime } from '@koonweee/mcp-kit/apps';\nglobalThis.__mcpKitBrowserRuntime = typeof createMcpAppRuntime;\nglobalThis.__mcpKitUpdateModelContext = (runtime) => typeof runtime.app.updateModelContext;\nglobalThis.__mcpKitSendMessage = (runtime) => typeof runtime.app.sendMessage;\nglobalThis.__mcpKitGetHostCapabilities = (runtime) => typeof runtime.app.getHostCapabilities;\n`,
   );
   await build({
     absWorkingDir: workspace,

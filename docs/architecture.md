@@ -70,9 +70,10 @@ privacy-safe correlation seam and must not be derived from any caller identity o
 ## Deliberate exclusions
 
 The kit provides MCP Apps definition, validation, server serialization, and an optional browser view
-lifecycle that composes the official ext-apps bridge. It does not build or host component bundles,
-reimplement the iframe protocol, select or verify component domains, manage DNS/TLS/ingress, or
-provide a runtime UI host. It also does not provide stateful sessions,
+lifecycle that composes the official ext-apps bridge, including typed pass-throughs for negotiated
+host capabilities, model-context updates, and explicit user messages. It does not build or host
+component bundles, reimplement the iframe protocol, select or verify component domains, manage
+DNS/TLS/ingress, or provide a runtime UI host. It also does not provide stateful sessions,
 resumability, databases, OAuth grant or token storage, a custom authorization server, server-owned
 human approval, background jobs, generic shell or arbitrary-HTTP tools, deployment manifests, or
 service-specific integrations. See [MCP Apps and UI resources](mcp-apps.md).

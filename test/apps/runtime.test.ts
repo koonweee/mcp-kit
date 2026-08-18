@@ -93,6 +93,71 @@ describe('MCP Apps browser runtime', () => {
     await fixture.teardown();
   });
 
+  it('discovers ui/message support and sends messages through the official App and AppBridge', async () => {
+    const fixture = createMcpAppTestHost({
+      appInfo: { name: 'message-test', version: '1.0.0' },
+    });
+
+    expect(fixture.runtime.app.getHostCapabilities()).toBeUndefined();
+    await fixture.connect();
+    expect(fixture.runtime.app.getHostCapabilities()?.message).toEqual({ text: {} });
+
+    const message = {
+      role: 'user' as const,
+      content: [{ type: 'text' as const, text: 'Tell me more about the selected holding.' }],
+    };
+    await expect(fixture.runtime.app.sendMessage(message)).resolves.toEqual({});
+    expect(fixture.messages).toEqual([message]);
+
+    await fixture.teardown();
+  });
+
+  it('preserves an official ui/message host error result for consumer handling', async () => {
+    const fixture = createMcpAppTestHost(
+      { appInfo: { name: 'message-error-test', version: '1.0.0' } },
+      { messageResult: { isError: true, reason: 'host declined' } },
+    );
+
+    await fixture.connect();
+    await expect(
+      fixture.runtime.app.sendMessage({
+        role: 'user',
+        content: [{ type: 'text', text: 'Ask about this item.' }],
+      }),
+    ).resolves.toEqual({ isError: true, reason: 'host declined' });
+
+    await fixture.teardown();
+  });
+
+  it('preserves an official ui/message rejection for consumer handling', async () => {
+    const fixture = createMcpAppTestHost(
+      { appInfo: { name: 'message-rejection-test', version: '1.0.0' } },
+      { messageFailure: new Error('host rejected message') },
+    );
+
+    await fixture.connect();
+    await expect(
+      fixture.runtime.app.sendMessage({
+        role: 'user',
+        content: [{ type: 'text', text: 'Ask about this item.' }],
+      }),
+    ).rejects.toThrow('host rejected message');
+
+    await fixture.teardown();
+  });
+
+  it('lets consumers detect a host that does not advertise ui/message', async () => {
+    const fixture = createMcpAppTestHost(
+      { appInfo: { name: 'message-unsupported-test', version: '1.0.0' } },
+      { hostCapabilities: {} },
+    );
+
+    await fixture.connect();
+    expect(fixture.runtime.app.getHostCapabilities()?.message).toBeUndefined();
+
+    await fixture.teardown();
+  });
+
   it('reports an unexpected peer close as a transport error and cleans browser resources', async () => {
     const fixture = createMcpAppTestHost({
       appInfo: { name: 'peer-close-test', version: '1.0.0' },

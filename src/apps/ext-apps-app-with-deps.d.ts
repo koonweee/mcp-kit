@@ -13,6 +13,58 @@ export interface McpUiAppCapabilities {
   availableDisplayModes?: Array<'inline' | 'fullscreen' | 'pip'>;
 }
 
+export interface McpUiSupportedContentBlockModalities {
+  text?: Record<string, never>;
+  image?: Record<string, never>;
+  audio?: Record<string, never>;
+  resource?: Record<string, never>;
+  resourceLink?: Record<string, never>;
+  structuredContent?: Record<string, never>;
+}
+
+export interface McpUiResourceCsp {
+  connectDomains?: string[];
+  resourceDomains?: string[];
+  frameDomains?: string[];
+  baseUriDomains?: string[];
+}
+
+export interface McpUiResourcePermissions {
+  camera?: Record<string, never>;
+  microphone?: Record<string, never>;
+  geolocation?: Record<string, never>;
+  clipboardWrite?: Record<string, never>;
+}
+
+export interface McpUiHostCapabilities {
+  experimental?: Record<string, object>;
+  openLinks?: Record<string, never>;
+  downloadFile?: Record<string, never>;
+  serverTools?: { listChanged?: boolean };
+  serverResources?: { listChanged?: boolean };
+  logging?: Record<string, never>;
+  sandbox?: {
+    permissions?: McpUiResourcePermissions;
+    csp?: McpUiResourceCsp;
+  };
+  updateModelContext?: McpUiSupportedContentBlockModalities;
+  message?: McpUiSupportedContentBlockModalities;
+  sampling?: { tools?: Record<string, never> };
+}
+
+export interface McpUiMessageRequest {
+  method: 'ui/message';
+  params: {
+    role: 'user';
+    content: ContentBlock[];
+  };
+}
+
+export interface McpUiMessageResult {
+  isError?: boolean;
+  [key: string]: unknown;
+}
+
 export interface McpUiHostContext {
   [key: string]: unknown;
   theme?: 'light' | 'dark';
@@ -40,6 +92,7 @@ export class App {
   connect(transport?: Transport, options?: RequestOptions): Promise<void>;
   close(): Promise<void>;
   getHostContext(): McpUiHostContext | undefined;
+  getHostCapabilities(): McpUiHostCapabilities | undefined;
   setupSizeChangedNotifications(): () => void;
   callServerTool(
     params: { name: string; arguments?: Record<string, unknown> },
@@ -50,6 +103,10 @@ export class App {
     params: { content?: ContentBlock[]; structuredContent?: Record<string, unknown> },
     options?: RequestOptions,
   ): Promise<EmptyResult>;
+  sendMessage(
+    params: McpUiMessageRequest['params'],
+    options?: RequestOptions,
+  ): Promise<McpUiMessageResult>;
   openLink(params: { url: string }, options?: RequestOptions): Promise<{ isError?: boolean }>;
   requestTeardown(params?: Record<string, unknown>): Promise<void>;
 }

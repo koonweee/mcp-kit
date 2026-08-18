@@ -21,6 +21,55 @@ export interface McpAppToolInput {
 }
 export type McpAppToolResult = CallToolResult;
 
+/** Official `ui/message` request parameters accepted by the host. */
+export interface McpAppMessage {
+  readonly role: 'user';
+  readonly content: ContentBlock[];
+}
+
+/** Official host result for a `ui/message` request. */
+export interface McpAppMessageResult {
+  readonly isError?: boolean;
+  readonly [key: string]: unknown;
+}
+
+/** Content block modalities advertised for host message and model-context support. */
+export interface McpAppSupportedContentBlockModalities {
+  readonly text?: Record<string, never>;
+  readonly image?: Record<string, never>;
+  readonly audio?: Record<string, never>;
+  readonly resource?: Record<string, never>;
+  readonly resourceLink?: Record<string, never>;
+  readonly structuredContent?: Record<string, never>;
+}
+
+/** Official host capabilities discovered during App initialization. */
+export interface McpAppHostCapabilities {
+  readonly experimental?: Record<string, object>;
+  readonly openLinks?: Record<string, never>;
+  readonly downloadFile?: Record<string, never>;
+  readonly serverTools?: { readonly listChanged?: boolean };
+  readonly serverResources?: { readonly listChanged?: boolean };
+  readonly logging?: Record<string, never>;
+  readonly sandbox?: {
+    readonly permissions?: {
+      readonly camera?: Record<string, never>;
+      readonly microphone?: Record<string, never>;
+      readonly geolocation?: Record<string, never>;
+      readonly clipboardWrite?: Record<string, never>;
+    };
+    readonly csp?: {
+      readonly connectDomains?: readonly string[];
+      readonly resourceDomains?: readonly string[];
+      readonly frameDomains?: readonly string[];
+      readonly baseUriDomains?: readonly string[];
+    };
+  };
+  readonly updateModelContext?: McpAppSupportedContentBlockModalities;
+  readonly message?: McpAppSupportedContentBlockModalities;
+  readonly sampling?: { readonly tools?: Readonly<Record<string, never>> };
+}
+
 /** Context contributed by an App for the host to include in a future model turn. */
 export interface McpAppModelContext {
   readonly content?: ContentBlock[];
@@ -50,6 +99,8 @@ export interface McpAppHostContext {
 
 /** Stable subset of official App host methods exposed by the runtime. */
 export interface McpAppClient {
+  /** Host capabilities are available after `connect()` completes. */
+  getHostCapabilities(): McpAppHostCapabilities | undefined;
   callServerTool(
     params: { readonly name: string; readonly arguments?: Record<string, unknown> },
     options?: RequestOptions,
@@ -61,6 +112,8 @@ export interface McpAppClient {
   ): Promise<{ readonly isError?: boolean }>;
   /** Typed passthrough to the official ext-apps App.updateModelContext request. */
   updateModelContext(params: McpAppModelContext, options?: RequestOptions): Promise<EmptyResult>;
+  /** Typed passthrough to the official ext-apps App.sendMessage `ui/message` request. */
+  sendMessage(params: McpAppMessage, options?: RequestOptions): Promise<McpAppMessageResult>;
   requestTeardown(params?: Record<string, unknown>): Promise<void>;
 }
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.2 - 2026-08-17
+
+- Exposed the official ext-apps `App.sendMessage` `ui/message` request and
+  `App.getHostCapabilities` discovery through the typed `McpAppClient` browser runtime surface.
+- Added official AppBridge roundtrip, unsupported-capability, host-error, packed ESM/CommonJS
+  declaration, browser-bundle, and registry-signature coverage without reimplementing the bridge.
+
 ## 0.4.1 - 2026-08-17
 
 - Exposed the official ext-apps `App.updateModelContext` request through the typed

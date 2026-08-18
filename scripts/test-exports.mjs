@@ -82,7 +82,7 @@ console.log('all five CommonJS public subpaths required from the packed artifact
     join(workspace, 'index.ts'),
     `
 import { MCP_APP_RESOURCE_MIME_TYPE, defineAppResource, defineServer, defineTool, mcpExtensionErrorBoundary, validateMcpApps, type McpAppResourceDefinition, type McpClientProtocolEra, type McpLogRecord, type McpPrincipal } from '@koonweee/mcp-kit';
-import { createMcpAppRuntime, type McpAppRuntimeState } from '@koonweee/mcp-kit/apps';
+import { createMcpAppRuntime, type McpAppHostCapabilities, type McpAppMessage, type McpAppMessageResult, type McpAppRuntimeState } from '@koonweee/mcp-kit/apps';
 import { createNodeMcpHandler, type NodeMcpHandler } from '@koonweee/mcp-kit/node';
 import { createAuth0Verifier, type Auth0VerifierOptions } from '@koonweee/mcp-kit/auth0';
 import { connectInMemory, createTestPrincipal, type InMemoryMcpClient } from '@koonweee/mcp-kit/test';
@@ -200,16 +200,24 @@ const updateContext = appRuntime.app.updateModelContext({
   content: [{ type: 'text', text: 'typed browser context' }],
   structuredContent: { selected: 'typed' },
 });
+const hostCapabilities: McpAppHostCapabilities | undefined = appRuntime.app.getHostCapabilities();
+const message: McpAppMessage = {
+  role: 'user',
+  content: [{ type: 'text', text: 'Explain the selected item.' }],
+};
+const messageResult: Promise<McpAppMessageResult> = appRuntime.app.sendMessage(message);
+// @ts-expect-error ui/message currently accepts only the user role.
+appRuntime.app.sendMessage({ role: 'assistant', content: [] });
 // @ts-expect-error Production Apps options deliberately reject fixture data.
 createMcpAppRuntime({ appInfo: { name: 'invalid-view', version: '1.0.0' }, fixture: { value: 'demo' } });
-void [appRuntime, appState, updateContext];
+void [appRuntime, appState, updateContext, hostCapabilities, message, messageResult];
 `,
   );
   await writeFile(
     join(workspace, 'index.cts'),
     `
 import { MCP_APP_RESOURCE_MIME_TYPE, defineAppResource, defineServer, defineTool, mcpExtensionErrorBoundary, validateMcpApps, type McpClientProtocolEra, type McpLogRecord, type McpPrincipal } from '@koonweee/mcp-kit';
-import { createMcpAppRuntime, type McpAppRuntimeState } from '@koonweee/mcp-kit/apps';
+import { createMcpAppRuntime, type McpAppHostCapabilities, type McpAppMessage, type McpAppMessageResult, type McpAppRuntimeState } from '@koonweee/mcp-kit/apps';
 import { createNodeMcpHandler, type NodeMcpHandler } from '@koonweee/mcp-kit/node';
 import { createAuth0Verifier, type Auth0VerifierOptions } from '@koonweee/mcp-kit/auth0';
 import { createTestJwtAuthority, createTestPrincipal } from '@koonweee/mcp-kit/test';
@@ -291,9 +299,17 @@ const updateContext = appRuntime.app.updateModelContext({
   content: [{ type: 'text', text: 'typed CommonJS browser context' }],
   structuredContent: { selected: 'commonjs' },
 });
+const hostCapabilities: McpAppHostCapabilities | undefined = appRuntime.app.getHostCapabilities();
+const message: McpAppMessage = {
+  role: 'user',
+  content: [{ type: 'text', text: 'Explain the selected CommonJS item.' }],
+};
+const messageResult: Promise<McpAppMessageResult> = appRuntime.app.sendMessage(message);
+// @ts-expect-error ui/message currently accepts only the user role.
+appRuntime.app.sendMessage({ role: 'assistant', content: [] });
 // @ts-expect-error Production Apps options deliberately reject fixture data.
 createMcpAppRuntime({ appInfo: { name: 'invalid-commonjs-view', version: '1.0.0' }, fixture: { value: 'demo' } });
-void [appRuntime, appState, updateContext];
+void [appRuntime, appState, updateContext, hostCapabilities, message, messageResult];
 `,
   );
   await writeFile(
@@ -324,7 +340,7 @@ void [appRuntime, appState, updateContext];
   await run(process.execPath, ['index.cjs'], { cwd: workspace });
   await writeFile(
     join(workspace, 'browser-entry.js'),
-    `import { createMcpAppRuntime } from '@koonweee/mcp-kit/apps';\nglobalThis.__mcpKitBrowserRuntime = typeof createMcpAppRuntime;\nglobalThis.__mcpKitUpdateModelContext = (runtime) => typeof runtime.app.updateModelContext;\n`,
+    `import { createMcpAppRuntime } from '@koonweee/mcp-kit/apps';\nglobalThis.__mcpKitBrowserRuntime = typeof createMcpAppRuntime;\nglobalThis.__mcpKitUpdateModelContext = (runtime) => typeof runtime.app.updateModelContext;\nglobalThis.__mcpKitSendMessage = (runtime) => typeof runtime.app.sendMessage;\nglobalThis.__mcpKitGetHostCapabilities = (runtime) => typeof runtime.app.getHostCapabilities;\n`,
   );
   await build({
     absWorkingDir: workspace,
